@@ -15,7 +15,6 @@ from django.utils import timezone
 
 from apps.models import Summary, TelegramDelivery
 
-# KEEP YOUR TOKEN LOGIC
 from dotenv import load_dotenv
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
@@ -25,24 +24,35 @@ dp = Dispatcher()
 DELAY_BETWEEN_MESSAGES = 2
 
 
-# ===============================
-# TENANT SAFE SENDING FUNCTION
-# ===============================
-async def send_summaries_to_channels(bot: Bot, user_id: int):
-    last_hour = timezone.now() - timedelta(hours=1)
-
-    # 🔥 ONLY THIS USER'S SUMMARIES
-    summaries = await sync_to_async(list)(
-        Summary.objects.filter(
-            created_date__gte=last_hour,
-            article__owner_id=user_id
+async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list = None):
+    """
+    If summary_ids is provided, only those summaries are sent.
+    Otherwise, falls back to the last-hour behaviour.
+    """
+    if summary_ids:
+        # ✅ Send only the explicitly selected summaries
+        summaries = await sync_to_async(list)(
+            Summary.objects.filter(
+                pk__in=summary_ids,
+                article__owner_id=user_id  # enforce ownership
+            )
+            .select_related('article')
+            .prefetch_related('article__article_classifications__topic')
         )
-        .select_related('article')
-        .prefetch_related('article__article_classifications__topic')
-    )
+    else:
+        # ✅ Default: last hour
+        last_hour = timezone.now() - timedelta(hours=1)
+        summaries = await sync_to_async(list)(
+            Summary.objects.filter(
+                created_date__gte=last_hour,
+                article__owner_id=user_id
+            )
+            .select_related('article')
+            .prefetch_related('article__article_classifications__topic')
+        )
 
     if not summaries:
-        logging.info("No new summaries for this user.")
+        logging.info("No summaries to send for this user.")
         return 0, 0
 
     sent_count = 0
@@ -50,7 +60,6 @@ async def send_summaries_to_channels(bot: Bot, user_id: int):
 
     for summary in summaries:
         try:
-            # Get classification
             def get_classification():
                 return summary.article.article_classifications.select_related('topic').first()
 
@@ -62,7 +71,6 @@ async def send_summaries_to_channels(bot: Bot, user_id: int):
 
             topic = classification.topic
 
-            # 🔥 ONLY THIS USER'S CHANNELS
             channels = await sync_to_async(list)(
                 topic.telegram_channels.filter(
                     is_active=True,
@@ -86,7 +94,6 @@ async def send_summaries_to_channels(bot: Bot, user_id: int):
 
             for channel in channels:
 
-                # Prevent duplicate send
                 def check_already_sent():
                     return TelegramDelivery.objects.filter(
                         summary=summary,
@@ -95,7 +102,6 @@ async def send_summaries_to_channels(bot: Bot, user_id: int):
                     ).exists()
 
                 already_sent = await sync_to_async(check_already_sent)()
-
                 if already_sent:
                     continue
 
@@ -139,6 +145,7 @@ async def send_summaries_to_channels(bot: Bot, user_id: int):
                     sent_count += 1
 
                 except Exception as send_err:
+                    logging.error(f"Failed to send to channel {channel.id}: {send_err}")
                     error_count += 1
 
                     await sync_to_async(TelegramDelivery.objects.create)(
@@ -150,36 +157,44 @@ async def send_summaries_to_channels(bot: Bot, user_id: int):
                         cost_charged=0
                     )
 
-        except Exception:
+        except Exception as e:
+            logging.error(f"Error processing summary {summary.id}: {e}")
             error_count += 1
 
     return sent_count, error_count
 
 
-# ===============================
-# MAIN ENTRY (TENANT SAFE)
-# ===============================
-async def main(user_id: int):
+async def main(user_id: int, summary_ids: list = None):
     bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-
-    logging.info(f"🤖 Telegram sending started for user_id={user_id}")
-
-    sent_count, error_count = await send_summaries_to_channels(bot, user_id)
-
+    logging.info(f"Telegram sending started for user_id={user_id}, summary_ids={summary_ids}")
+    sent_count, error_count = await send_summaries_to_channels(bot, user_id, summary_ids)
     logging.info(f"Finished. Sent: {sent_count}, Errors: {error_count}")
 
 
-# ===============================
-# DJANGO COMMAND
-# ===============================
 class Command(BaseCommand):
-    help = 'Send Telegram summaries (multi-tenant)'
+    help = 'Send Telegram summaries (multi-tenant, supports --summary_ids)'
 
     def add_arguments(self, parser):
         parser.add_argument('--user_id', type=int, required=True)
+        parser.add_argument(
+            '--summary_ids',
+            type=str,
+            default=None,
+            help='Comma-separated list of summary IDs to send (optional). If omitted, sends last hour.'
+        )
 
     def handle(self, *args, **options):
         user_id = options["user_id"]
+        raw_ids = options.get("summary_ids")
+
+        # Parse comma-separated IDs if provided
+        summary_ids = None
+        if raw_ids:
+            try:
+                summary_ids = [int(i.strip()) for i in raw_ids.split(',') if i.strip()]
+            except ValueError:
+                self.stdout.write(self.style.ERROR('Invalid --summary_ids format. Use comma-separated integers.'))
+                return
 
         logging.basicConfig(
             level=logging.INFO,
@@ -188,10 +203,13 @@ class Command(BaseCommand):
         )
 
         self.stdout.write(
-            self.style.SUCCESS(f'🚀 Starting Telegram for user_id={user_id}')
+            self.style.SUCCESS(
+                f'Starting Telegram for user_id={user_id}'
+                + (f', summary_ids={summary_ids}' if summary_ids else ' (last hour)')
+            )
         )
 
         try:
-            asyncio.run(main(user_id))
+            asyncio.run(main(user_id, summary_ids))
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'❌ Error: {e}'))
+            self.stdout.write(self.style.ERROR(f'Error: {e}'))
