@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Summaries{% endblock %}
+{% block page_subtitle %}AI-generated article summaries{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow">
+    <div class="p-4 bg-gray-50 border-b">
+        <p class="text-gray-600">
+            Total summaries: <span class="font-semibold">{{ page_obj.paginator.count }}</span>
+        </p>
+    </div>
+    
+    <div class="divide-y">
+        {% for summary in page_obj %}
+        <div class="p-6">
+            <a href="{% url 'dashboard:article_detail' summary.article.pk %}" class="text-lg font-semibold text-blue-600 hover:text-blue-700">
+                {{ summary.article.title }}
+            </a>
+            <p class="text-gray-700 mt-2">{{ summary.summary_text }}</p>
+            <div class="flex items-center mt-3 text-sm text-gray-500 space-x-4">
+                <span><i class="fas fa-globe mr-1"></i>{{ summary.article.source }}</span>
+                <span><i class="fas fa-clock mr-1"></i>{{ summary.created_date|timesince }} ago</span>
+            </div>
+        </div>
+        {% empty %}
+        <div class="p-8 text-center text-gray-500">
+            <i class="fas fa-inbox text-4xl mb-2"></i><br>
+            No summaries yet. Run the summarizer!
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if page_obj.has_other_pages %}
+    <div class="p-4 bg-gray-50 border-t flex justify-between">
+        <div>
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="bg-white border px-4 py-2 rounded-lg">Previous</a>
+            {% endif %}
+        </div>
+        <span class="text-gray-600">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        <div>
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="bg-white border px-4 py-2 rounded-lg">Next</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
