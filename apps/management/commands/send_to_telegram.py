@@ -24,10 +24,11 @@ dp = Dispatcher()
 DELAY_BETWEEN_MESSAGES = 2
 
 
-async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list = None):
+async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list = None, channel_ids: list = None):
     """
     If summary_ids is provided, only those summaries are sent.
-    Otherwise, falls back to the last-hour behaviour.
+    If channel_ids is provided, only those channels are used.
+    Otherwise falls back to last-hour / all-active-channels behaviour.
     """
     if summary_ids:
         # ✅ Send only the explicitly selected summaries
@@ -71,12 +72,15 @@ async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list =
 
             topic = classification.topic
 
-            channels = await sync_to_async(list)(
-                topic.telegram_channels.filter(
-                    is_active=True,
-                    owner_id=user_id
-                )
+            # 🔥 ONLY THIS USER'S CHANNELS (filtered by channel_ids if provided)
+            channel_qs = topic.telegram_channels.filter(
+                is_active=True,
+                owner_id=user_id
             )
+            if channel_ids:
+                channel_qs = channel_qs.filter(pk__in=channel_ids)
+
+            channels = await sync_to_async(list)(channel_qs)
 
             if not channels:
                 continue
@@ -164,10 +168,10 @@ async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list =
     return sent_count, error_count
 
 
-async def main(user_id: int, summary_ids: list = None):
+async def main(user_id: int, summary_ids: list = None, channel_ids: list = None):
     bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-    logging.info(f"Telegram sending started for user_id={user_id}, summary_ids={summary_ids}")
-    sent_count, error_count = await send_summaries_to_channels(bot, user_id, summary_ids)
+    logging.info(f"Telegram sending started for user_id={user_id}, summary_ids={summary_ids}, channel_ids={channel_ids}")
+    sent_count, error_count = await send_summaries_to_channels(bot, user_id, summary_ids, channel_ids)
     logging.info(f"Finished. Sent: {sent_count}, Errors: {error_count}")
 
 
@@ -180,20 +184,34 @@ class Command(BaseCommand):
             '--summary_ids',
             type=str,
             default=None,
-            help='Comma-separated list of summary IDs to send (optional). If omitted, sends last hour.'
+            help='Comma-separated summary IDs (optional). If omitted, sends last hour.'
+        )
+        parser.add_argument(
+            '--channel_ids',
+            type=str,
+            default=None,
+            help='Comma-separated channel IDs to send to (optional). If omitted, uses all active channels.'
         )
 
     def handle(self, *args, **options):
-        user_id = options["user_id"]
-        raw_ids = options.get("summary_ids")
+        user_id  = options["user_id"]
+        raw_ids  = options.get("summary_ids")
+        raw_cids = options.get("channel_ids")
 
-        # Parse comma-separated IDs if provided
         summary_ids = None
         if raw_ids:
             try:
                 summary_ids = [int(i.strip()) for i in raw_ids.split(',') if i.strip()]
             except ValueError:
-                self.stdout.write(self.style.ERROR('Invalid --summary_ids format. Use comma-separated integers.'))
+                self.stdout.write(self.style.ERROR('Invalid --summary_ids format.'))
+                return
+
+        channel_ids = None
+        if raw_cids:
+            try:
+                channel_ids = [int(i.strip()) for i in raw_cids.split(',') if i.strip()]
+            except ValueError:
+                self.stdout.write(self.style.ERROR('Invalid --channel_ids format.'))
                 return
 
         logging.basicConfig(
@@ -210,6 +228,6 @@ class Command(BaseCommand):
         )
 
         try:
-            asyncio.run(main(user_id, summary_ids))
+            asyncio.run(main(user_id, summary_ids, channel_ids))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Error: {e}'))

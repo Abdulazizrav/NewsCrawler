@@ -202,23 +202,6 @@ def article_delete(request, pk):
 
 
 @login_required(login_url='/admin/login/')
-def summary_list(request):
-    """List user summaries only"""
-
-    summaries = Summary.objects.filter(
-        article__owner=request.user  # ✅ filter via article owner
-    ).select_related('article').order_by('-created_date')
-
-    from django.core.paginator import Paginator
-    paginator = Paginator(summaries, 30)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    context = {'page_obj': page_obj}
-    return render(request, 'summaries.html', context)
-
-
-@login_required(login_url='/admin/login/')
 def classification_list(request):
     """List user classifications only"""
 
@@ -737,7 +720,33 @@ def check_payments(request):
         return redirect('dashboard:home')
     return redirect('dashboard:home')
 
-# ── Add these two views to your views.py ──────────────────────────────────────
+# ── Replace summary_list, summary_edit, summary_send_selected in your views.py ──
+
+@login_required(login_url='/admin/login/')
+def summary_list(request):
+    """List user summaries only"""
+
+    summaries = Summary.objects.filter(
+        article__owner=request.user
+    ).select_related('article').order_by('-created_date')
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(summaries, 30)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # ✅ Pass user's active channels to the template for the channel picker
+    user_channels = TelegramChannel.objects.filter(
+        owner=request.user,
+        is_active=True
+    ).select_related('topic').order_by('name')
+
+    context = {
+        'page_obj': page_obj,
+        'user_channels': user_channels,
+    }
+    return render(request, 'summaries.html', context)
+
 
 @login_required(login_url='/admin/login/')
 @require_POST
@@ -748,7 +757,7 @@ def summary_edit(request, pk):
         pk=pk,
         article__owner=request.user
     )
-    new_text = request.POST.get('summary_text', '').strip()
+    new_text  = request.POST.get('summary_text', '').strip()
     new_title = request.POST.get('translated_title', '').strip()
 
     if not new_text:
@@ -769,32 +778,58 @@ def summary_edit(request, pk):
 @login_required(login_url='/admin/login/')
 @require_POST
 def summary_send_selected(request):
-    """Send only the selected summaries to Telegram"""
+    """Send selected summaries to selected channels only"""
     summary_ids = request.POST.getlist('summary_ids')
+    channel_ids = request.POST.getlist('channel_ids')
 
     if not summary_ids:
         messages.error(request, 'No summaries selected.')
         return redirect('dashboard:summary_list')
 
-    # Verify ownership of all selected summaries
-    valid_ids = Summary.objects.filter(
-        pk__in=summary_ids,
-        article__owner=request.user
-    ).values_list('pk', flat=True)
+    if not channel_ids:
+        messages.error(request, 'No channels selected.')
+        return redirect('dashboard:summary_list')
 
-    if not valid_ids:
+    # Verify ownership of summaries
+    valid_summary_ids = list(
+        Summary.objects.filter(
+            pk__in=summary_ids,
+            article__owner=request.user
+        ).values_list('pk', flat=True)
+    )
+
+    # Verify ownership of channels
+    valid_channel_ids = list(
+        TelegramChannel.objects.filter(
+            pk__in=channel_ids,
+            owner=request.user,
+            is_active=True
+        ).values_list('pk', flat=True)
+    )
+
+    if not valid_summary_ids:
         messages.error(request, 'No valid summaries found.')
         return redirect('dashboard:summary_list')
 
-    # Pass the selected IDs to the management command
-    ids_str = ','.join(str(i) for i in valid_ids)
+    if not valid_channel_ids:
+        messages.error(request, 'No valid channels found.')
+        return redirect('dashboard:summary_list')
+
+    summary_ids_str = ','.join(str(i) for i in valid_summary_ids)
+    channel_ids_str = ','.join(str(i) for i in valid_channel_ids)
+
     subprocess.Popen([
         'python',
         'manage.py',
         'send_to_telegram',
         f'--user_id={request.user.id}',
-        f'--summary_ids={ids_str}',
+        f'--summary_ids={summary_ids_str}',
+        f'--channel_ids={channel_ids_str}',
     ])
 
-    messages.success(request, f'Sending {len(valid_ids)} summar{"y" if len(valid_ids) == 1 else "ies"} to Telegram!')
+    messages.success(
+        request,
+        f'Sending {len(valid_summary_ids)} summar{"y" if len(valid_summary_ids) == 1 else "ies"} '
+        f'to {len(valid_channel_ids)} channel{"" if len(valid_channel_ids) == 1 else "s"}!'
+    )
     return redirect('dashboard:summary_list')
