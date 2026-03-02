@@ -99,7 +99,7 @@ CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://newscrawler-production.up.railway.app/",
+    "https://newscrawler-production.up.railway.app",
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
