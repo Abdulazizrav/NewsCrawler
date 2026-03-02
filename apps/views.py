@@ -742,19 +742,27 @@ def check_payments(request):
 @login_required(login_url='/admin/login/')
 @require_POST
 def summary_edit(request, pk):
-    """Edit a summary's text"""
+    """Edit a summary's text and article title"""
     summary = get_object_or_404(
         Summary,
         pk=pk,
-        article__owner=request.user  # enforce ownership
+        article__owner=request.user
     )
     new_text = request.POST.get('summary_text', '').strip()
-    if new_text:
-        summary.summary_text = new_text
-        summary.save()
-        messages.success(request, 'Summary updated successfully!')
-    else:
+    new_title = request.POST.get('translated_title', '').strip()
+
+    if not new_text:
         messages.error(request, 'Summary text cannot be empty.')
+        return redirect('dashboard:summary_list')
+
+    summary.summary_text = new_text
+    summary.save()
+
+    if new_title:
+        summary.article.title = new_title
+        summary.article.save(update_fields=['title'])
+
+    messages.success(request, 'Summary updated successfully!')
     return redirect('dashboard:summary_list')
 
 
