@@ -81,7 +81,7 @@ def process_article(article):
         )
 
         article.is_summary = True
-        article.translated_title = translated_title  # adjust field name if different in your model
+        article.title = translated_title  # adjust field name if different in your model
         article.save()
 
         with stats_lock:
