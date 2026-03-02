@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Topics{% endblock %}
+{% block page_subtitle %}Manage news categories and keywords{% endblock %}
+
+{% block content %}
+    <div class="mb-6 flex justify-between items-center">
+        <p class="text-gray-600">Total topics: <span class="font-semibold">{{ topics.count }}</span></p>
+        <a href="{% url 'dashboard:topic_add' %}"
+           class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow transition">
+            <i class="fas fa-plus mr-2"></i>Add Topic
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for topic in topics %}
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition">
+                <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-6 text-white">
+                    <h3 class="text-2xl font-bold">{{ topic.name }}</h3>
+                </div>
+
+                <div class="p-6">
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-600 mb-2">Keywords:</p>
+                        <div class="flex flex-wrap gap-2">
+                            {% for keyword in topic.keyword_list %}
+                                <span>{{ keyword }}</span>
+                            {% endfor %}
+
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="bg-blue-50 p-3 rounded-lg">
+                            <p class="text-xs text-gray-600">Articles</p>
+                            <p class="text-2xl font-bold text-blue-600">{{ topic.article_count }}</p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded-lg">
+                            <p class="text-xs text-gray-600">Channels</p>
+                            <p class="text-2xl font-bold text-green-600">{{ topic.channel_count }}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex space-x-2">
+                        <a href="{% url 'dashboard:topic_edit' topic.pk %}"
+                           class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 rounded-lg font-semibold text-sm">
+                            <i class="fas fa-edit mr-1"></i>Edit
+                        </a>
+                        <form method="post" action="{% url 'dashboard:topic_delete' topic.pk %}" class="flex-1"
+                              onsubmit="return confirm('Delete topic {{ topic.name }}?')">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-semibold text-sm">
+                                <i class="fas fa-trash mr-1"></i>Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-span-3 bg-white rounded-lg shadow p-12 text-center">
+                <i class="fas fa-folder-open text-gray-300 text-6xl mb-4"></i>
+                <p class="text-gray-500 mb-4">No topics yet</p>
+                <a href="{% url 'dashboard:topic_add' %}"
+                   class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg">
+                    Create First Topic
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
