@@ -4,47 +4,219 @@
 {% block page_subtitle %}AI-generated article summaries{% endblock %}
 
 {% block content %}
-<div class="bg-white rounded-lg shadow">
-    <div class="p-4 bg-gray-50 border-b">
-        <p class="text-gray-600">
-            Total summaries: <span class="font-semibold">{{ page_obj.paginator.count }}</span>
-        </p>
+
+{% if messages %}
+<div class="mb-4 space-y-2">
+    {% for message in messages %}
+    <div class="px-4 py-3 rounded-lg text-sm font-medium
+        {% if message.tags == 'success' %}bg-green-100 text-green-800 border border-green-200
+        {% elif message.tags == 'error' %}bg-red-100 text-red-800 border border-red-200
+        {% else %}bg-blue-100 text-blue-800 border border-blue-200{% endif %}">
+        {{ message }}
     </div>
-    
-    <div class="divide-y">
-        {% for summary in page_obj %}
-        <div class="p-6">
-            <a href="{% url 'dashboard:article_detail' summary.article.pk %}" class="text-lg font-semibold text-blue-600 hover:text-blue-700">
-                {{ summary.article.title }}
-            </a>
-            <p class="text-gray-700 mt-2">{{ summary.summary_text }}</p>
-            <div class="flex items-center mt-3 text-sm text-gray-500 space-x-4">
-                <span><i class="fas fa-globe mr-1"></i>{{ summary.article.source }}</span>
-                <span><i class="fas fa-clock mr-1"></i>{{ summary.created_date|timesince }} ago</span>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Edit Summary Modal -->
+<div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4">
+        <div class="flex items-center justify-between p-5 border-b">
+            <h2 class="text-lg font-semibold text-gray-800">Edit Summary</h2>
+            <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+        </div>
+        <form method="POST" action="{% url 'dashboard:summary_edit' 0 %}" id="editForm">
+            {% csrf_token %}
+            <input type="hidden" name="summary_id" id="editSummaryId">
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Article Title</label>
+                    <input type="text" id="editArticleTitle" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500" disabled>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Summary Text</label>
+                    <textarea name="summary_text" id="editSummaryText" rows="6"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 p-5 border-t bg-gray-50 rounded-b-xl">
+                <button type="button" onclick="closeEditModal()"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<form method="POST" action="{% url 'dashboard:summary_send_selected' %}" id="sendForm">
+    {% csrf_token %}
+
+    <div class="bg-white rounded-lg shadow">
+
+        <!-- Toolbar -->
+        <div class="p-4 bg-gray-50 border-b flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-4">
+                <label class="flex items-center gap-2 cursor-pointer select-none text-sm font-medium text-gray-700">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"
+                        class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                    Select All
+                </label>
+                <span class="text-sm text-gray-500">
+                    Total: <span class="font-semibold text-gray-800">{{ page_obj.paginator.count }}</span>
+                    &nbsp;|&nbsp; Selected: <span id="selectedCount" class="font-semibold text-blue-600">0</span>
+                </span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="submit"
+                    id="sendBtn"
+                    onclick="return confirmSend()"
+                    class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    disabled>
+                    <i class="fas fa-paper-plane text-xs"></i>
+                    Send Selected
+                </button>
             </div>
         </div>
-        {% empty %}
-        <div class="p-8 text-center text-gray-500">
-            <i class="fas fa-inbox text-4xl mb-2"></i><br>
-            No summaries yet. Run the summarizer!
+
+        <!-- Summary List -->
+        <div class="divide-y">
+            {% for summary in page_obj %}
+            <div class="p-5 hover:bg-gray-50 transition-colors group">
+                <div class="flex items-start gap-3">
+
+                    <!-- Checkbox -->
+                    <div class="mt-1 flex-shrink-0">
+                        <input type="checkbox" name="summary_ids" value="{{ summary.pk }}"
+                            onchange="updateSelectedCount()"
+                            class="summary-checkbox w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-start justify-between gap-2">
+                            <a href="{% url 'dashboard:article_detail' summary.article.pk %}"
+                                class="text-base font-semibold text-blue-600 hover:text-blue-700 leading-snug">
+                                {{ summary.article.title }}
+                            </a>
+
+                            <!-- Edit Button -->
+                            <button type="button"
+                                onclick="openEditModal({{ summary.pk }}, '{{ summary.article.title|escapejs }}', {{ summary.summary_text|escapejs|tojson }})"
+                                class="flex-shrink-0 opacity-0 group-hover:opacity-100 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-all">
+                                <i class="fas fa-pen text-xs"></i>
+                                Edit
+                            </button>
+                        </div>
+
+                        <p class="text-gray-700 text-sm mt-1.5 leading-relaxed">{{ summary.summary_text }}</p>
+
+                        <div class="flex items-center mt-2.5 text-xs text-gray-400 space-x-4">
+                            <span><i class="fas fa-globe mr-1"></i>{{ summary.article.source }}</span>
+                            <span><i class="fas fa-clock mr-1"></i>{{ summary.created_date|timesince }} ago</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="p-12 text-center text-gray-400">
+                <i class="fas fa-inbox text-5xl mb-3 block opacity-40"></i>
+                <p class="text-base font-medium">No summaries yet.</p>
+                <p class="text-sm mt-1">Run the summarizer from the dashboard!</p>
+            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="p-4 bg-gray-50 border-t flex justify-between items-center">
+            <div>
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}"
+                    class="bg-white border px-4 py-2 rounded-lg text-sm hover:bg-gray-100 transition-colors">
+                    &larr; Previous
+                </a>
+                {% endif %}
+            </div>
+            <span class="text-sm text-gray-500">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+            <div>
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}"
+                    class="bg-white border px-4 py-2 rounded-lg text-sm hover:bg-gray-100 transition-colors">
+                    Next &rarr;
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
     </div>
-    
-    {% if page_obj.has_other_pages %}
-    <div class="p-4 bg-gray-50 border-t flex justify-between">
-        <div>
-            {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}" class="bg-white border px-4 py-2 rounded-lg">Previous</a>
-            {% endif %}
-        </div>
-        <span class="text-gray-600">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-        <div>
-            {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}" class="bg-white border px-4 py-2 rounded-lg">Next</a>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
-</div>
+</form>
+
+<script>
+    // ── Select All ──────────────────────────────────────────
+    function toggleSelectAll(master) {
+        document.querySelectorAll('.summary-checkbox').forEach(cb => {
+            cb.checked = master.checked;
+        });
+        updateSelectedCount();
+    }
+
+    // ── Count selected & toggle Send button ─────────────────
+    function updateSelectedCount() {
+        const checked = document.querySelectorAll('.summary-checkbox:checked').length;
+        const total   = document.querySelectorAll('.summary-checkbox').length;
+        document.getElementById('selectedCount').textContent = checked;
+        document.getElementById('sendBtn').disabled = checked === 0;
+
+        // Sync "Select All" indeterminate state
+        const master = document.getElementById('selectAll');
+        master.indeterminate = checked > 0 && checked < total;
+        master.checked = checked === total && total > 0;
+    }
+
+    // ── Confirm before sending ───────────────────────────────
+    function confirmSend() {
+        const count = document.querySelectorAll('.summary-checkbox:checked').length;
+        return confirm(`Send ${count} selected summar${count === 1 ? 'y' : 'ies'} to Telegram channels?`);
+    }
+
+    // ── Edit Modal ───────────────────────────────────────────
+    function openEditModal(summaryId, articleTitle, summaryText) {
+        document.getElementById('editSummaryId').value  = summaryId;
+        document.getElementById('editArticleTitle').value = articleTitle;
+        document.getElementById('editSummaryText').value  = summaryText;
+
+        // Update form action with real ID
+        document.getElementById('editForm').action =
+            "{% url 'dashboard:summary_edit' 0 %}".replace('/0/', '/' + summaryId + '/');
+
+        const modal = document.getElementById('editModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeEditModal() {
+        const modal = document.getElementById('editModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('editModal').addEventListener('click', function(e) {
+        if (e.target === this) closeEditModal();
+    });
+
+    // Close modal on Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeEditModal();
+    });
+</script>
+
 {% endblock %}

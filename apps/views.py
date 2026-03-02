@@ -736,3 +736,57 @@ def check_payments(request):
         messages.success(request, 'Payment check started!')
         return redirect('dashboard:home')
     return redirect('dashboard:home')
+
+# ── Add these two views to your views.py ──────────────────────────────────────
+
+@login_required(login_url='/admin/login/')
+@require_POST
+def summary_edit(request, pk):
+    """Edit a summary's text"""
+    summary = get_object_or_404(
+        Summary,
+        pk=pk,
+        article__owner=request.user  # enforce ownership
+    )
+    new_text = request.POST.get('summary_text', '').strip()
+    if new_text:
+        summary.summary_text = new_text
+        summary.save()
+        messages.success(request, 'Summary updated successfully!')
+    else:
+        messages.error(request, 'Summary text cannot be empty.')
+    return redirect('dashboard:summary_list')
+
+
+@login_required(login_url='/admin/login/')
+@require_POST
+def summary_send_selected(request):
+    """Send only the selected summaries to Telegram"""
+    summary_ids = request.POST.getlist('summary_ids')
+
+    if not summary_ids:
+        messages.error(request, 'No summaries selected.')
+        return redirect('dashboard:summary_list')
+
+    # Verify ownership of all selected summaries
+    valid_ids = Summary.objects.filter(
+        pk__in=summary_ids,
+        article__owner=request.user
+    ).values_list('pk', flat=True)
+
+    if not valid_ids:
+        messages.error(request, 'No valid summaries found.')
+        return redirect('dashboard:summary_list')
+
+    # Pass the selected IDs to the management command
+    ids_str = ','.join(str(i) for i in valid_ids)
+    subprocess.Popen([
+        'python',
+        'manage.py',
+        'send_to_telegram',
+        f'--user_id={request.user.id}',
+        f'--summary_ids={ids_str}',
+    ])
+
+    messages.success(request, f'Sending {len(valid_ids)} summar{"y" if len(valid_ids) == 1 else "ies"} to Telegram!')
+    return redirect('dashboard:summary_list')
