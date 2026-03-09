@@ -20,7 +20,7 @@ from apps.permissions import superadmin_required, any_admin_required, is_superad
 #  SHARED HOME — routes to correct dashboard by role
 # ══════════════════════════════════════════════════════════
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def dashboard_home(request):
     if is_superadmin(request.user):
         return redirect('dashboard:superadmin_home')
@@ -31,7 +31,7 @@ def dashboard_home(request):
 #  CHANNEL ADMIN DASHBOARD
 # ══════════════════════════════════════════════════════════
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def channel_admin_home(request):
     today = timezone.now().date()
 
@@ -321,7 +321,7 @@ def superadmin_statistics(request):
 #  CHANNEL ADMIN VIEWS (unchanged logic, kept clean)
 # ══════════════════════════════════════════════════════════
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def article_list(request):
     articles = Article.objects.filter(owner=request.user).order_by('-published_date')
     source = request.GET.get('source')
@@ -360,7 +360,7 @@ def article_list(request):
     return render(request, 'articles.html', context)
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def article_detail(request, pk):
     article = get_object_or_404(Article, pk=pk, owner=request.user)
     summary = Summary.objects.filter(article=article).first()
@@ -369,7 +369,7 @@ def article_detail(request, pk):
     return render(request, 'article_detail.html', context)
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def article_delete(request, pk):
     if request.method == 'POST':
         article = get_object_or_404(Article, pk=pk, owner=request.user)
@@ -379,7 +379,7 @@ def article_delete(request, pk):
     return redirect('dashboard:article_list')
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def summary_list(request):
     summaries = Summary.objects.filter(article__owner=request.user).select_related('article').order_by('-created_date')
     from django.core.paginator import Paginator
@@ -388,7 +388,7 @@ def summary_list(request):
     return render(request, 'summaries.html', {'page_obj': page_obj, 'user_channels': user_channels})
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 @require_POST
 def summary_edit(request, pk):
     summary = get_object_or_404(Summary, pk=pk, article__owner=request.user)
@@ -406,7 +406,7 @@ def summary_edit(request, pk):
     return redirect('dashboard:summary_list')
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 @require_POST
 def summary_send_selected(request):
     summary_ids = request.POST.getlist('summary_ids')
@@ -436,7 +436,7 @@ def summary_send_selected(request):
     return redirect('dashboard:summary_list')
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def classification_list(request):
     classifications = Classification.objects.filter(article__owner=request.user).select_related('article', 'topic').order_by('-id')
     topic_filter = request.GET.get('topic')
@@ -448,7 +448,7 @@ def classification_list(request):
     return render(request, 'classifications.html', {'page_obj': page_obj, 'topics': topics, 'current_topic': topic_filter})
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def topic_list(request):
     topics = Topic.objects.filter(owner=request.user)
     for topic in topics:
@@ -458,7 +458,7 @@ def topic_list(request):
     return render(request, 'topics.html', {'topics': topics})
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def topic_add(request):
     if request.method == 'POST':
         Topic.objects.create(owner=request.user, name=request.POST.get('name'), keywords=request.POST.get('keywords'))
@@ -467,7 +467,7 @@ def topic_add(request):
     return render(request, 'topic_form.html', {'action': 'Add'})
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def topic_edit(request, pk):
     topic = get_object_or_404(Topic, pk=pk, owner=request.user)
     if request.method == 'POST':
@@ -479,7 +479,7 @@ def topic_edit(request, pk):
     return render(request, 'topic_form.html', {'topic': topic, 'action': 'Edit'})
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def topic_delete(request, pk):
     if request.method == 'POST':
         topic = get_object_or_404(Topic, pk=pk, owner=request.user)
@@ -489,7 +489,7 @@ def topic_delete(request, pk):
     return redirect('dashboard:topic_list')
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def channel_list(request):
     channels = TelegramChannel.objects.filter(owner=request.user).select_related('topic').annotate(
         message_count=Count('telegram_deliveries', filter=Q(telegram_deliveries__status='sent')),
@@ -500,7 +500,7 @@ def channel_list(request):
     return render(request, 'channels.html', {'channels': channels})
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def channel_add(request):
     if request.method == 'POST':
         topic = get_object_or_404(Topic, pk=request.POST.get('topic'), owner=request.user)
@@ -520,7 +520,7 @@ def channel_add(request):
     return render(request, 'channel_form.html', {'topics': topics, 'action': 'Add'})
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def channel_edit(request, pk):
     channel = get_object_or_404(TelegramChannel, pk=pk, owner=request.user)
     if request.method == 'POST':
@@ -536,7 +536,7 @@ def channel_edit(request, pk):
     return render(request, 'channel_form.html', {'channel': channel, 'topics': topics, 'action': 'Edit'})
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def channel_toggle(request, pk):
     if request.method == 'POST':
         channel = get_object_or_404(TelegramChannel, pk=pk, owner=request.user)
@@ -546,7 +546,7 @@ def channel_toggle(request, pk):
     return redirect('dashboard:channel_list')
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def channel_add_balance(request, pk):
     if request.method == 'POST':
         channel = get_object_or_404(TelegramChannel, pk=pk, owner=request.user)
@@ -566,7 +566,7 @@ def channel_add_balance(request, pk):
     return redirect('dashboard:channel_list')
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def delivery_list(request):
     deliveries = TelegramDelivery.objects.filter(telegram_channel__owner=request.user) \
         .select_related('telegram_channel', 'summary', 'summary__article').order_by('-sent_date')
@@ -582,7 +582,7 @@ def delivery_list(request):
     return render(request, 'deliveries.html', {'page_obj': page_obj, 'channels': channels, 'current_channel': channel_id, 'current_status': status})
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def statistics(request):
     today    = timezone.now().date()
     week_ago = today - timedelta(days=7)
@@ -610,7 +610,7 @@ def statistics(request):
 
 # ── Management command triggers ──────────────────────────
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 @require_POST
 def run_crawler(request):
     try:
@@ -621,7 +621,7 @@ def run_crawler(request):
     return redirect('dashboard:home')
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 @require_POST
 def run_summarizer(request):
     subprocess.Popen(['python', 'manage.py', 'summarize', f'--user_id={request.user.id}'])
@@ -629,7 +629,7 @@ def run_summarizer(request):
     return redirect('dashboard:home')
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 @require_POST
 def run_classifier(request):
     subprocess.Popen(['python', 'manage.py', 'classify_articles', f'--user_id={request.user.id}'])
@@ -637,7 +637,7 @@ def run_classifier(request):
     return redirect('dashboard:home')
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 @require_POST
 def run_telegram(request):
     try:
@@ -648,7 +648,7 @@ def run_telegram(request):
     return redirect('dashboard:home')
 
 
-@login_required(login_url='/admin/login/')
+@login_required(login_url='/login/')
 def check_payments(request):
     if request.method == 'POST':
         threading.Thread(target=lambda: call_command('check_channel_payments')).start()
