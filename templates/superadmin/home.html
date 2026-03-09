@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block page_title %}Superadmin Dashboard{% endblock %}
+{% block page_subtitle %}Platform-wide overview{% endblock %}
+
+{% block content %}
+
+<!-- Stats Row -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-xs text-gray-400 font-medium uppercase tracking-wide">Total Revenue</p>
+                <p class="text-2xl font-bold text-gray-800 mt-1">${{ total_revenue }}</p>
+            </div>
+            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-dollar-sign text-green-600"></i>
+            </div>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">Today: <span class="text-green-600 font-semibold">${{ revenue_today }}</span></p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-xs text-gray-400 font-medium uppercase tracking-wide">Channel Admins</p>
+                <p class="text-2xl font-bold text-gray-800 mt-1">{{ channel_admins.count }}</p>
+            </div>
+            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-users text-blue-600"></i>
+            </div>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">Active accounts</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-xs text-gray-400 font-medium uppercase tracking-wide">Total Channels</p>
+                <p class="text-2xl font-bold text-gray-800 mt-1">{{ total_channels }}</p>
+            </div>
+            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <i class="fab fa-telegram text-purple-600"></i>
+            </div>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">Across all users</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-xs text-gray-400 font-medium uppercase tracking-wide">Messages Today</p>
+                <p class="text-2xl font-bold text-gray-800 mt-1">{{ messages_today }}</p>
+            </div>
+            <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-paper-plane text-orange-600"></i>
+            </div>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">This week: <span class="font-semibold text-gray-600">${{ revenue_week }}</span></p>
+    </div>
+</div>
+
+<!-- User Billing Table -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="flex items-center justify-between p-5 border-b border-gray-100">
+        <h2 class="font-bold text-gray-800"><i class="fas fa-users mr-2 text-blue-500"></i>Channel Admin Billing</h2>
+        <a href="{% url 'dashboard:superadmin_users' %}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">Manage Users →</a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-gray-100 bg-gray-50">
+                    <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">User</th>
+                    <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Channels</th>
+                    <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Balance</th>
+                    <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Spent</th>
+                    <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Messages</th>
+                    <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                    <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                {% for b in user_billing %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-5 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                                {{ b.profile.user.username|slice:":1"|upper }}
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800 text-sm">{{ b.profile.user.username }}</p>
+                                <p class="text-xs text-gray-400">{{ b.profile.user.email|default:"—" }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-5 py-4 text-sm text-gray-700">{{ b.channels }}</td>
+                    <td class="px-5 py-4">
+                        <span class="text-sm font-semibold {% if b.total_balance < 10 %}text-red-600{% else %}text-green-600{% endif %}">${{ b.total_balance }}</span>
+                    </td>
+                    <td class="px-5 py-4 text-sm font-semibold text-gray-800">${{ b.spent }}</td>
+                    <td class="px-5 py-4 text-sm text-gray-700">{{ b.messages_sent }}</td>
+                    <td class="px-5 py-4">
+                        {% if b.profile.is_active %}
+                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Active
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
+                            <span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span> Inactive
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-5 py-4">
+                        <a href="{% url 'dashboard:superadmin_user_detail' b.profile.pk %}"
+                           class="text-blue-600 hover:text-blue-700 text-sm font-medium">View →</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-5 py-12 text-center text-gray-400">
+                        <i class="fas fa-users text-3xl mb-2 block opacity-30"></i>
+                        No channel admins yet. <a href="{% url 'dashboard:superadmin_users' %}" class="text-blue-600 hover:underline">Create one →</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

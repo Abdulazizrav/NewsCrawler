@@ -4,6 +4,7 @@ from apps.models.summary import Summary
 from apps.models.telegram_channel import TelegramChannel
 from apps.models.telegram_delivery import TelegramDelivery
 from apps.models.topic import Topic
+from apps.models.user_profile import UserProfile
 
 __all__ = (
     Article,
@@ -13,4 +14,5 @@ __all__ = (
     Classification,
     TelegramChannel,
     TelegramDelivery,
+    UserProfile
 )
