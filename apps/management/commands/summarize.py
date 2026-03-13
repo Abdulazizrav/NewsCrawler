@@ -15,12 +15,8 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 stats_lock = Lock()
 openai_semaphore = Semaphore(5)
-
-stats = {
-    "processed": 0,
-    "failed": 0,
-    "skipped": 0,
-}
+processing_lock = Lock()
+processing_ids = set()  # track articles currently being processed by any thread
 
 
 def extract_text(response):
@@ -58,18 +54,27 @@ def summarize_and_translate_with_openai(text: str, title: str) -> tuple[str, str
     return extract_text(summary_response), extract_text(title_response)
 
 
-def process_article(article):
-    if article.is_summary or Summary.objects.filter(article=article).exists():
-        with stats_lock:
-            stats["skipped"] += 1
-        return
-
-    if not article.content or len(article.content) < 50:
-        with stats_lock:
-            stats["skipped"] += 1
-        return
+def process_article(article, stats):
+    # Claim this article atomically — skip if another thread already took it
+    with processing_lock:
+        if article.id in processing_ids:
+            with stats_lock:
+                stats["skipped"] += 1
+            return
+        processing_ids.add(article.id)
 
     try:
+        # Double-check in DB after claiming (handles re-runs)
+        if article.is_summary or Summary.objects.filter(article=article).exists():
+            with stats_lock:
+                stats["skipped"] += 1
+            return
+
+        if not article.content or len(article.content) < 50:
+            with stats_lock:
+                stats["skipped"] += 1
+            return
+
         summary, translated_title = summarize_and_translate_with_openai(
             article.content,
             article.title
@@ -81,7 +86,7 @@ def process_article(article):
         )
 
         article.is_summary = True
-        article.title = translated_title  # adjust field name if different in your model
+        article.title = translated_title
         article.save()
 
         with stats_lock:
@@ -91,6 +96,11 @@ def process_article(article):
         print(f"Error processing article {article.id}: {e}")
         with stats_lock:
             stats["failed"] += 1
+
+    finally:
+        # Always release the article ID so re-runs work correctly
+        with processing_lock:
+            processing_ids.discard(article.id)
 
 
 class Command(BaseCommand):
@@ -103,6 +113,9 @@ class Command(BaseCommand):
         user = User.objects.get(id=options["user_id"])
 
         start = datetime.datetime.now()
+
+        # Reset stats per run (not global state)
+        stats = {"processed": 0, "failed": 0, "skipped": 0}
 
         articles = list(
             Article.objects.filter(
@@ -118,7 +131,7 @@ class Command(BaseCommand):
         self.stdout.write(f"Found {len(articles)} articles to process...")
 
         with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = [executor.submit(process_article, a) for a in articles]
+            futures = [executor.submit(process_article, a, stats) for a in articles]
             for f in as_completed(futures):
                 f.result()
 

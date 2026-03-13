@@ -441,24 +441,38 @@ def classification_list(request):
     classifications = Classification.objects.filter(article__owner=request.user).select_related('article', 'topic').order_by('-id')
     topic_filter = request.GET.get('topic')
     if topic_filter:
-        classifications = classifications.filter(topic_id=topic_filter, topic__owner=request.user)
+        classifications = classifications.filter(topic_id=topic_filter)
     from django.core.paginator import Paginator
     page_obj = Paginator(classifications, 30).get_page(request.GET.get('page'))
-    topics = Topic.objects.filter(owner=request.user)
+    topics = Topic.objects.all().order_by('name')  # all superadmin topics
     return render(request, 'classifications.html', {'page_obj': page_obj, 'topics': topics, 'current_topic': topic_filter})
 
 
 @login_required(login_url='/login/')
 def topic_list(request):
-    topics = Topic.objects.filter(owner=request.user)
-    for topic in topics:
-        topic.article_count = Classification.objects.filter(topic=topic, article__owner=request.user).count()
-        topic.channel_count = TelegramChannel.objects.filter(topic=topic, owner=request.user).count()
-        topic.keyword_list = [k.strip() for k in topic.keywords.split(',')] if topic.keywords else []
-    return render(request, 'topics.html', {'topics': topics})
+    try:
+        superadmin = request.user.profile.role == 'superadmin'
+    except Exception:
+        superadmin = False
+
+    if superadmin:
+        topics = list(Topic.objects.all())
+        for topic in topics:
+            topic.article_count = Classification.objects.filter(topic=topic).count()
+            topic.channel_count = TelegramChannel.objects.filter(topic=topic).count()
+            topic.keyword_list = [k.strip() for k in topic.keywords.split(',')] if topic.keywords else []
+    else:
+        # Channel admin sees only topics linked to their own channels
+        topic_ids = TelegramChannel.objects.filter(owner=request.user).values_list('topic_id', flat=True).distinct()
+        topics = list(Topic.objects.filter(pk__in=topic_ids))
+        for topic in topics:
+            topic.article_count = Classification.objects.filter(topic=topic).count()
+            topic.channel_count = TelegramChannel.objects.filter(topic=topic, owner=request.user).count()
+            topic.keyword_list = [k.strip() for k in topic.keywords.split(',')] if topic.keywords else []
+    return render(request, 'topics.html', {'topics': topics, 'topics_count': len(topics)})
 
 
-@login_required(login_url='/login/')
+@superadmin_required
 def topic_add(request):
     if request.method == 'POST':
         Topic.objects.create(owner=request.user, name=request.POST.get('name'), keywords=request.POST.get('keywords'))
@@ -467,9 +481,9 @@ def topic_add(request):
     return render(request, 'topic_form.html', {'action': 'Add'})
 
 
-@login_required(login_url='/login/')
+@superadmin_required
 def topic_edit(request, pk):
-    topic = get_object_or_404(Topic, pk=pk, owner=request.user)
+    topic = get_object_or_404(Topic, pk=pk)
     if request.method == 'POST':
         topic.name = request.POST.get('name')
         topic.keywords = request.POST.get('keywords')
@@ -479,10 +493,10 @@ def topic_edit(request, pk):
     return render(request, 'topic_form.html', {'topic': topic, 'action': 'Edit'})
 
 
-@login_required(login_url='/login/')
+@superadmin_required
 def topic_delete(request, pk):
     if request.method == 'POST':
-        topic = get_object_or_404(Topic, pk=pk, owner=request.user)
+        topic = get_object_or_404(Topic, pk=pk)
         name = topic.name
         topic.delete()
         messages.success(request, f'Topic "{name}" deleted!')
@@ -501,14 +515,23 @@ def channel_list(request):
 
 
 @login_required(login_url='/login/')
+def topic_select(request):
+    topics = Topic.objects.all().order_by('name')
+    for topic in topics:
+        topic.keyword_list = [k.strip() for k in topic.keywords.split(',')] if topic.keywords else []
+        topic.channel_count = TelegramChannel.objects.filter(topic=topic).count()
+    return render(request, 'topic_select.html', {'topics': topics})
+
+
+@login_required(login_url='/login/')
 def channel_add(request):
     if request.method == 'POST':
-        topic = get_object_or_404(Topic, pk=request.POST.get('topic'), owner=request.user)
+        topic = get_object_or_404(Topic, pk=request.POST.get('topic'))
         TelegramChannel.objects.create(
             owner=request.user,
             name=request.POST.get('name'),
             channel_id=request.POST.get('channel_id'),
-            topic=topic,
+            topic=topic,  # use original topic directly
             price_per_message=Decimal(request.POST.get('price_per_message')),
             balance=Decimal(request.POST.get('balance')),
             is_active=True,
@@ -516,15 +539,18 @@ def channel_add(request):
         )
         messages.success(request, f'Channel "{request.POST.get("name")}" added!')
         return redirect('dashboard:channel_list')
-    topics = Topic.objects.filter(owner=request.user)
-    return render(request, 'channel_form.html', {'topics': topics, 'action': 'Add'})
 
+    topics = Topic.objects.filter(owner__is_staff=True).order_by('name')
+    preselected_topic = request.GET.get('topic', '')
+    return render(request, 'channel_form.html',
+                  {'topics': topics, 'action': 'Add', 'preselected_topic': preselected_topic})
 
 @login_required(login_url='/login/')
 def channel_edit(request, pk):
     channel = get_object_or_404(TelegramChannel, pk=pk, owner=request.user)
     if request.method == 'POST':
-        topic = get_object_or_404(Topic, pk=request.POST.get('topic'), owner=request.user)
+        # Topic can belong to anyone (superadmin creates them)
+        topic = get_object_or_404(Topic, pk=request.POST.get('topic'))
         channel.name = request.POST.get('name')
         channel.channel_id = request.POST.get('channel_id')
         channel.topic = topic
@@ -532,7 +558,8 @@ def channel_edit(request, pk):
         channel.save()
         messages.success(request, f'Channel "{channel.name}" updated!')
         return redirect('dashboard:channel_list')
-    topics = Topic.objects.filter(owner=request.user)
+    # Show ALL topics created by superadmin
+    topics = Topic.objects.all().order_by('name')
     return render(request, 'channel_form.html', {'channel': channel, 'topics': topics, 'action': 'Edit'})
 
 

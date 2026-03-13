@@ -50,12 +50,12 @@ rss = [
 ]
 
 
-def crawl_with_rss():
+def crawl_with_rss(owner):
     for url in rss:
         feed = feedparser.parse(url)
         for entry in feed.entries:
-            if not Article.objects.filter(url=entry['link']).exists():
-                article = Article.objects.create(title=entry['title'], content=entry['summary'], is_summary=True,
+            if not Article.objects.filter(owner=owner, url=entry['link']).exists():
+                article = Article.objects.create(owner=owner, title=entry['title'], content=entry['summary'], is_summary=True,
                                                  url=entry['link'], source=feed.feed.title,
                                                  published_date=entry['published'])
                 image_url = extract_image(article=article, entry=entry)
@@ -91,7 +91,7 @@ def extract_image_from_independent(article):
             save_image(image_url=images[1]['src'], article=article)
 
 
-def crawl_from_rss_http():
+def crawl_from_rss_http(owner):
     for url in http_rss:
         feed = feedparser.parse(url)
         for entry in feed.entries:
@@ -108,8 +108,8 @@ def crawl_from_rss_http():
                         body += letter
                 content = body
 
-            if not Article.objects.filter(url=link).exists():
-                article = Article.objects.create(title=title, content=content, is_summary=False,
+            if not Article.objects.filter(owner=owner, url=link).exists():
+                article = Article.objects.create(owner=owner, title=title, content=content, is_summary=False,
                                                  url=link, source=source, published_date=published)
                 extract_image_from_independent(article=article)
 
@@ -129,19 +129,19 @@ def image_from_qalampir(article):
         save_image(image_url=images, article=article)
 
 
-def crawl_from_qalampir():
+def crawl_from_qalampir(owner):
     response = httpx.get("https://qalampir.uz/uz/latest")
     soup = BeautifulSoup(response.text, "html.parser")
     cards = soup.find_all("a", {"class": "news-card"})
 
     for card in cards:
         url = "https://qalampir.uz" + card.get("href")
-        if not Article.objects.filter(url=url).exists():
+        if not Article.objects.filter(owner=owner, url=url).exists():
             title = card.find("p", {"class": "news-card-content-text"}).text.strip()
             published = card.find("span", {"class": "date"}).text
             response = BeautifulSoup(httpx.get(url).text, "html.parser").find_all("div", {"class": "col-12"})
             content = response[4].find("p").text.strip()
-            article = Article.objects.create(title=title, url=url, published_date=published,
+            article = Article.objects.create(owner=owner, title=title, url=url, published_date=published,
                                              content=content, is_summary=True, source='qalampir.uz')
             image_from_qalampir(article=article)
     print("Qalampir dan barcha ma'lumotlar yuklandi")
@@ -164,20 +164,21 @@ def crawl_from_sputnik():
     print("Sputnik dan barcha ma'lumotlar yuklandi")
 
 
-def crawl_from_guardian():
+def crawl_from_guardian(owner):
     response = httpx.get("https://www.theguardian.com/world")
     soup = BeautifulSoup(response.text, "html.parser")
     links = soup.find_all("a", {"class": "dcr-2yd10d"})
 
     for link in links:
         url = 'https://www.theguardian.com' + link.get('href')
-        if not Article.objects.filter(url=url).exists():
+        if not Article.objects.filter(owner=owner, url=url).exists():
             title = link.get("aria-label")
             response2 = httpx.get(url)
             soup2 = BeautifulSoup(response2.text, "html.parser")
             published_date = None
             content = "".join(p.text for p in soup2.find_all("p", {"class": "dcr-130mj7b"}))
             article = Article.objects.create(
+                owner=owner,
                 content=content,
                 url=url,
                 title=title,

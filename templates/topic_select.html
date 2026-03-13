@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Select Topic{% endblock %}
+{% block page_subtitle %}Choose a topic to add your channel under{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-xl shadow p-8">
+
+        <!-- Topic Dropdown -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Topic *</label>
+            <select id="topicSelect"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">Select Topic</option>
+                {% for topic in topics %}
+                <option value="{{ topic.pk }}"
+                        data-name="{{ topic.name }}"
+                        data-keywords="{{ topic.keyword_list|join:', ' }}"
+                        data-articles="{{ topic.article_count }}"
+                        data-channels="{{ topic.channel_count }}">
+                    {{ topic.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex gap-3">
+            <a id="continueBtn" href="#"
+               class="flex-1 hidden text-center bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold text-sm transition">
+                <i class="fas fa-arrow-right mr-2"></i>Add Channel with this Topic
+            </a>
+            <a href="{% url 'dashboard:topic_list' %}"
+               class="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold text-sm transition">
+                Cancel
+            </a>
+        </div>
+
+    </div>
+</div>
+
+<script>
+const select = document.getElementById('topicSelect');
+const continueBtn = document.getElementById('continueBtn');
+
+select.addEventListener('change', function () {
+    if (!this.value) {
+        continueBtn.classList.add('hidden');
+        return;
+    }
+    continueBtn.href = "{% url 'dashboard:channel_add' %}?topic=" + this.value;
+    continueBtn.classList.remove('hidden');
+});
+</script>
+{% endblock %}

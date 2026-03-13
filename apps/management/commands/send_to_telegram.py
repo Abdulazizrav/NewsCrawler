@@ -67,15 +67,19 @@ async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list =
             classification = await sync_to_async(get_classification)()
 
             if not classification or not classification.topic:
+                logging.warning(f"Summary {summary.id} skipped — no classification or topic")
                 error_count += 1
                 continue
 
             topic = classification.topic
 
-            # 🔥 ONLY THIS USER'S CHANNELS (filtered by channel_ids if provided)
-            channel_qs = topic.telegram_channels.filter(
+            # Match channels by topic NAME (not FK) so superadmin topics
+            # link correctly to channel admin channels even if topic objects differ
+            from apps.models import TelegramChannel
+            channel_qs = TelegramChannel.objects.filter(
                 is_active=True,
-                owner_id=user_id
+                owner_id=user_id,
+                topic__name=topic.name,  # match by name, not by id
             )
             if channel_ids:
                 channel_qs = channel_qs.filter(pk__in=channel_ids)
@@ -171,8 +175,11 @@ async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list =
 async def main(user_id: int, summary_ids: list = None, channel_ids: list = None):
     bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     logging.info(f"Telegram sending started for user_id={user_id}, summary_ids={summary_ids}, channel_ids={channel_ids}")
-    sent_count, error_count = await send_summaries_to_channels(bot, user_id, summary_ids, channel_ids)
-    logging.info(f"Finished. Sent: {sent_count}, Errors: {error_count}")
+    try:
+        sent_count, error_count = await send_summaries_to_channels(bot, user_id, summary_ids, channel_ids)
+        logging.info(f"Finished. Sent: {sent_count}, Errors: {error_count}")
+    finally:
+        await bot.session.close()
 
 
 class Command(BaseCommand):

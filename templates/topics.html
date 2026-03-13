@@ -1,15 +1,23 @@
 {% extends 'base.html' %}
 
 {% block page_title %}Topics{% endblock %}
-{% block page_subtitle %}Manage news categories and keywords{% endblock %}
+{% block page_subtitle %}{% if request.user.profile.role == 'superadmin' %}Manage news categories and keywords{% else %}Browse available topics{% endif %}{% endblock %}
 
 {% block content %}
     <div class="mb-6 flex justify-between items-center">
-        <p class="text-gray-600">Total topics: <span class="font-semibold">{{ topics.count }}</span></p>
+        <p class="text-gray-600">Total topics: <span class="font-semibold">{{ topics_count }}</span></p>
+
+        {% if request.user.profile.role == 'superadmin' %}
         <a href="{% url 'dashboard:topic_add' %}"
            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow transition">
             <i class="fas fa-plus mr-2"></i>Add Topic
         </a>
+        {% else %}
+        <a href="{% url 'dashboard:topic_select' %}"
+           class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg shadow transition">
+            <i class="fas fa-plus mr-2"></i>Add
+        </a>
+        {% endif %}
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -24,9 +32,8 @@
                         <p class="text-sm text-gray-600 mb-2">Keywords:</p>
                         <div class="flex flex-wrap gap-2">
                             {% for keyword in topic.keyword_list %}
-                                <span>{{ keyword }}</span>
+                                <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">{{ keyword }}</span>
                             {% endfor %}
-
                         </div>
                     </div>
 
@@ -41,6 +48,7 @@
                         </div>
                     </div>
 
+                    {% if request.user.profile.role == 'superadmin' %}
                     <div class="flex space-x-2">
                         <a href="{% url 'dashboard:topic_edit' topic.pk %}"
                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 rounded-lg font-semibold text-sm">
@@ -55,16 +63,31 @@
                             </button>
                         </form>
                     </div>
+                    {% else %}
+                    <div class="pt-2 border-t border-gray-100">
+                        <p class="text-xs text-gray-400 text-center">
+                            <i class="fas fa-info-circle mr-1"></i>Managed by admin
+                        </p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         {% empty %}
             <div class="col-span-3 bg-white rounded-lg shadow p-12 text-center">
                 <i class="fas fa-folder-open text-gray-300 text-6xl mb-4"></i>
+                {% if request.user.profile.role == 'superadmin' %}
                 <p class="text-gray-500 mb-4">No topics yet</p>
                 <a href="{% url 'dashboard:topic_add' %}"
                    class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg">
                     Create First Topic
                 </a>
+                {% else %}
+                <p class="text-gray-500 mb-4">You haven't added any topics yet</p>
+                <a href="{% url 'dashboard:topic_select' %}"
+                   class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg">
+                    <i class="fas fa-plus mr-2"></i>Add a Topic
+                </a>
+                {% endif %}
             </div>
         {% endfor %}
     </div>

@@ -31,6 +31,7 @@ urlpatterns = [
 
     # Topics
     path('topics/',                 views.topic_list,   name='topic_list'),
+    path('topics/select/',          views.topic_select, name='topic_select'),
     path('topics/add/',             views.topic_add,    name='topic_add'),
     path('topics/edit/<int:pk>/',   views.topic_edit,   name='topic_edit'),
     path('topics/delete/<int:pk>/', views.topic_delete, name='topic_delete'),

@@ -1,76 +1,93 @@
 {% extends 'base.html' %}
 
 {% block page_title %}{{ action }} Channel{% endblock %}
-{% block page_subtitle %}{% if action == 'Add' %}Create a new Telegram channel{% else %}Update channel information{% endif %}{% endblock %}
+{% block page_subtitle %}{% if action == 'Add' %}Create a new Telegram channel{% else %}Update channel information
+{% endif %}{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto">
-    <div class="bg-white rounded-lg shadow p-6">
-        <form method="post">
-            {% csrf_token %}
-            
-            <div class="mb-4">
-                <label class="block text-gray-700 font-semibold mb-2">Channel Name *</label>
-                <input type="text" name="name" value="{{ channel.name|default:'' }}" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="e.g. Sports News Channel" required>
-                <p class="text-sm text-gray-500 mt-1">The display name for this channel</p>
+    <div class="max-w-2xl mx-auto">
+        <div class="bg-white rounded-lg shadow p-6">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2">Channel Name *</label>
+                    <input type="text" name="name" value="{{ channel.name|default:'' }}"
+                           class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="e.g. Sports News Channel" required>
+                    <p class="text-sm text-gray-500 mt-1">The display name for this channel</p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2">Channel ID *</label>
+                    <input type="text" name="channel_id" value="{{ channel.channel_id|default:'' }}"
+                           class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="@sports_news or -1001234567890" required>
+                    <p class="text-sm text-gray-500 mt-1">Telegram channel username or ID</p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2">Topic *</label>
+                    <select name="topic"
+                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required>
+                        <option value="">Select Topic</option>
+                        {% for topic in topics %}
+                            <option value="{{ topic.pk }}"
+                                    {% if channel.topic_id == topic.pk %}selected
+                                    {% elif preselected_topic == topic.pk|stringformat:"s" %}selected
+                                    {% endif %}>
+                                {{ topic.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-sm text-gray-500 mt-1">Which topic should this channel receive?</p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2">Price per Message ($) *</label>
+                    <input type="number" name="price_per_message" step="0.01" min="0.01"
+                           value="{{ channel.price_per_message|default:'0.10' }}"
+                           class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           required>
+                    <p class="text-sm text-gray-500 mt-1">Cost charged per message sent</p>
+                </div>
+
+                {% if action == 'Add' %}
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-semibold mb-2">Initial Balance ($) *</label>
+                        <input type="number" name="balance" step="0.01" min="0" value="100"
+                               class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               required>
+                        <p class="text-sm text-gray-500 mt-1">Starting balance for this channel</p>
+                    </div>
+                {% endif %}
+
+                <div class="flex space-x-3 mt-6">
+                    <a href="{% url 'dashboard:channel_list' %}"
+                       class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 text-center py-3 px-4 rounded-lg font-semibold">
+                        Cancel
+                    </a>
+                    <button type="submit"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold">
+                        <i class="fas fa-save mr-2"></i>{{ action }} Channel
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        {% if action == 'Add' %}
+            <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 class="font-semibold text-blue-900 mb-2">
+                    <i class="fas fa-info-circle mr-2"></i>Setup Instructions
+                </h4>
+                <ol class="list-decimal list-inside space-y-1 text-sm text-blue-800">
+                    <li>Create a channel in Telegram</li>
+                    <li>Add your bot (@YourBot) as an admin to the channel</li>
+                    <li>Get the channel ID (username like @channel or numeric ID)</li>
+                    <li>Fill in the form above and save</li>
+                </ol>
             </div>
-            
-            <div class="mb-4">
-                <label class="block text-gray-700 font-semibold mb-2">Channel ID *</label>
-                <input type="text" name="channel_id" value="{{ channel.channel_id|default:'' }}" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="@sports_news or -1001234567890" required>
-                <p class="text-sm text-gray-500 mt-1">Telegram channel username or ID</p>
-            </div>
-            
-            <div class="mb-4">
-                <label class="block text-gray-700 font-semibold mb-2">Topic *</label>
-                <select name="topic" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                    <option value="">Select Topic</option>
-                    {% for topic in topics %}
-                    <option value="{{ topic.pk }}" {% if channel.topic_id == topic.pk %}selected{% endif %}>
-                        {{ topic.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-                <p class="text-sm text-gray-500 mt-1">Which topic should this channel receive?</p>
-            </div>
-            
-            <div class="mb-4">
-                <label class="block text-gray-700 font-semibold mb-2">Price per Message ($) *</label>
-                <input type="number" name="price_per_message" step="0.01" min="0.01" value="{{ channel.price_per_message|default:'0.10' }}" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                <p class="text-sm text-gray-500 mt-1">Cost charged per message sent</p>
-            </div>
-            
-            {% if action == 'Add' %}
-            <div class="mb-4">
-                <label class="block text-gray-700 font-semibold mb-2">Initial Balance ($) *</label>
-                <input type="number" name="balance" step="0.01" min="0" value="100" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                <p class="text-sm text-gray-500 mt-1">Starting balance for this channel</p>
-            </div>
-            {% endif %}
-            
-            <div class="flex space-x-3 mt-6">
-                <a href="{% url 'dashboard:channel_list' %}" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 text-center py-3 px-4 rounded-lg font-semibold">
-                    Cancel
-                </a>
-                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold">
-                    <i class="fas fa-save mr-2"></i>{{ action }} Channel
-                </button>
-            </div>
-        </form>
+        {% endif %}
     </div>
-    
-    {% if action == 'Add' %}
-    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 class="font-semibold text-blue-900 mb-2">
-            <i class="fas fa-info-circle mr-2"></i>Setup Instructions
-        </h4>
-        <ol class="list-decimal list-inside space-y-1 text-sm text-blue-800">
-            <li>Create a channel in Telegram</li>
-            <li>Add your bot (@YourBot) as an admin to the channel</li>
-            <li>Get the channel ID (username like @channel or numeric ID)</li>
-            <li>Fill in the form above and save</li>
-        </ol>
-    </div>
-    {% endif %}
-</div>
 {% endblock %}

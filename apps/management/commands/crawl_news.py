@@ -1,9 +1,14 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from concurrent.futures import ThreadPoolExecutor
-from apps.models import Topic
 from ...scripts.crawlers import (
     crawl_from_truck,
+    crawl_with_rss,
+    crawl_from_rss_http,
+    crawl_from_qalampir,
+    crawl_from_guardian,
+
+
 )
 
 import datetime
@@ -56,7 +61,11 @@ def run_all_crawlers(user):
     """
 
     try:
-        crawl_from_truck(user)
+        #crawl_from_truck(user)
+        crawl_with_rss(user)
+        crawl_from_guardian(user)
+        crawl_from_rss_http(user)
+        crawl_from_qalampir(user)
         # crawl_from_guardian(topic, user)
         # crawl_from_qalampir(topic, user)
         # crawl_from_sputnik(topic, user)
