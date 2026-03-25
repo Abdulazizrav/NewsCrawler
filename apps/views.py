@@ -405,7 +405,6 @@ def summary_edit(request, pk):
     messages.success(request, 'Summary updated successfully!')
     return redirect('dashboard:summary_list')
 
-
 @login_required(login_url='/login/')
 @require_POST
 def summary_send_selected(request):
@@ -428,21 +427,12 @@ def summary_send_selected(request):
 
     user_id = request.user.id
 
-    def classify_then_send():
-        try:
-            call_command('classify_articles', user_id=user_id)
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Classify failed before send: {e}")
-
-        subprocess.Popen([
-            'python', 'manage.py', 'send_to_telegram',
-            f'--user_id={user_id}',
-            f'--summary_ids={",".join(str(i) for i in valid_summary_ids)}',
-            f'--channel_ids={",".join(str(i) for i in valid_channel_ids)}',
-        ])
-
-    threading.Thread(target=classify_then_send, daemon=True).start()
+    subprocess.Popen([
+        'python', 'manage.py', 'send_to_telegram',
+        f'--user_id={user_id}',
+        f'--summary_ids={",".join(str(i) for i in valid_summary_ids)}',
+        f'--channel_ids={",".join(str(i) for i in valid_channel_ids)}',
+    ])
 
     messages.success(request, f'Sending {len(valid_summary_ids)} summaries to {len(valid_channel_ids)} channels!')
     return redirect('dashboard:summary_list')
