@@ -426,12 +426,24 @@ def summary_send_selected(request):
         messages.error(request, 'No valid summaries or channels found.')
         return redirect('dashboard:summary_list')
 
-    subprocess.Popen([
-        'python', 'manage.py', 'send_to_telegram',
-        f'--user_id={request.user.id}',
-        f'--summary_ids={",".join(str(i) for i in valid_summary_ids)}',
-        f'--channel_ids={",".join(str(i) for i in valid_channel_ids)}',
-    ])
+    user_id = request.user.id
+
+    def classify_then_send():
+        try:
+            call_command('classify_articles', user_id=user_id)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Classify failed before send: {e}")
+
+        subprocess.Popen([
+            'python', 'manage.py', 'send_to_telegram',
+            f'--user_id={user_id}',
+            f'--summary_ids={",".join(str(i) for i in valid_summary_ids)}',
+            f'--channel_ids={",".join(str(i) for i in valid_channel_ids)}',
+        ])
+
+    threading.Thread(target=classify_then_send, daemon=True).start()
+
     messages.success(request, f'Sending {len(valid_summary_ids)} summaries to {len(valid_channel_ids)} channels!')
     return redirect('dashboard:summary_list')
 
