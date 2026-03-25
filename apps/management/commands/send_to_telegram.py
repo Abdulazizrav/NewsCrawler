@@ -13,7 +13,7 @@ from asgiref.sync import sync_to_async
 from django.core.management import BaseCommand
 from django.utils import timezone
 
-from apps.models import Summary, TelegramDelivery
+from apps.models import Summary, TelegramDelivery, TelegramChannel
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -25,35 +25,43 @@ DELAY_BETWEEN_MESSAGES = 2
 
 
 async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list = None, channel_ids: list = None):
-    """
-    If summary_ids is provided, only those summaries are sent.
-    If channel_ids is provided, only those channels are used.
-    Otherwise falls back to last-hour / all-active-channels behaviour.
-    """
     if summary_ids:
-        # ✅ Send only the explicitly selected summaries
         summaries = await sync_to_async(list)(
             Summary.objects.filter(
                 pk__in=summary_ids,
-                article__owner_id=user_id  # enforce ownership
-            )
-            .select_related('article')
-            .prefetch_related('article__article_classifications__topic')
+                article__owner_id=user_id
+            ).select_related('article')
         )
     else:
-        # ✅ Default: last hour
         last_hour = timezone.now() - timedelta(hours=1)
         summaries = await sync_to_async(list)(
             Summary.objects.filter(
                 created_date__gte=last_hour,
                 article__owner_id=user_id
-            )
-            .select_related('article')
-            .prefetch_related('article__article_classifications__topic')
+            ).select_related('article')
         )
 
     if not summaries:
         logging.info("No summaries to send for this user.")
+        return 0, 0
+
+    # ✅ Get channels directly, no topic/classification needed
+    if channel_ids:
+        channel_qs = TelegramChannel.objects.filter(
+            pk__in=channel_ids,
+            is_active=True,
+            owner_id=user_id
+        )
+    else:
+        channel_qs = TelegramChannel.objects.filter(
+            is_active=True,
+            owner_id=user_id
+        )
+
+    channels = await sync_to_async(list)(channel_qs)
+
+    if not channels:
+        logging.warning(f"No active channels found for user {user_id}")
         return 0, 0
 
     sent_count = 0
@@ -61,34 +69,6 @@ async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list =
 
     for summary in summaries:
         try:
-            def get_classification():
-                return summary.article.article_classifications.select_related('topic').first()
-
-            classification = await sync_to_async(get_classification)()
-
-            if not classification or not classification.topic:
-                logging.warning(f"Summary {summary.id} skipped — no classification or topic")
-                error_count += 1
-                continue
-
-            topic = classification.topic
-
-            # Match channels by topic NAME (not FK) so superadmin topics
-            # link correctly to channel admin channels even if topic objects differ
-            from apps.models import TelegramChannel
-            channel_qs = TelegramChannel.objects.filter(
-                is_active=True,
-                owner_id=user_id,
-                topic__name=topic.name,  # match by name, not by id
-            )
-            if channel_ids:
-                channel_qs = channel_qs.filter(pk__in=channel_ids)
-
-            channels = await sync_to_async(list)(channel_qs)
-
-            if not channels:
-                continue
-
             caption = (
                 f"<b>{summary.article.title}</b>\n\n"
                 f"{summary.summary_text}\n\n"
@@ -114,6 +94,7 @@ async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list =
                     continue
 
                 if channel.balance < channel.price_per_message:
+                    logging.warning(f"Channel {channel.id} insufficient balance, skipping")
                     continue
 
                 try:
@@ -187,18 +168,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--user_id', type=int, required=True)
-        parser.add_argument(
-            '--summary_ids',
-            type=str,
-            default=None,
-            help='Comma-separated summary IDs (optional). If omitted, sends last hour.'
-        )
-        parser.add_argument(
-            '--channel_ids',
-            type=str,
-            default=None,
-            help='Comma-separated channel IDs to send to (optional). If omitted, uses all active channels.'
-        )
+        parser.add_argument('--summary_ids', type=str, default=None)
+        parser.add_argument('--channel_ids', type=str, default=None)
 
     def handle(self, *args, **options):
         user_id  = options["user_id"]
