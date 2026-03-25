@@ -61,7 +61,7 @@ def run_all_crawlers(user):
     """
 
     try:
-        #crawl_from_truck(user)
+        crawl_from_truck(user)
         crawl_with_rss(user)
         crawl_from_guardian(user)
         crawl_from_rss_http(user)
