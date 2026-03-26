@@ -50,23 +50,31 @@ def _scheduled_send_loop():
         try:
             from apps.models.scheduled_send import ScheduledSend
             now = timezone.now()
-            pending = ScheduledSend.objects.filter(is_sent=False, scheduled_time__lte=now)
+
+            pending = ScheduledSend.objects.filter(
+                is_sent=False,
+                scheduled_time__lte=now
+            )
+
+            logger.info(f"🔥 Scheduler running... {pending.count()} pending")
 
             for scheduled in pending:
-                logger.info(f"⏰ Firing scheduled send id={scheduled.id} for user={scheduled.user_id}")
+                logger.info(f"⏰ Firing scheduled send id={scheduled.id}")
+
                 subprocess.Popen([
                     'python', 'manage.py', 'send_to_telegram',
                     f'--user_id={scheduled.user_id}',
                     f'--summary_ids={scheduled.summary_ids}',
                     f'--channel_ids={scheduled.channel_ids}',
                 ])
+
                 scheduled.is_sent = True
                 scheduled.save()
 
         except Exception as e:
             logger.error(f"❌ Scheduled send checker error: {e}")
 
-        time.sleep(60)  # check every minute
+        time.sleep(60)
 
 
 def _run_command(command: list, user_id: int, name: str):
