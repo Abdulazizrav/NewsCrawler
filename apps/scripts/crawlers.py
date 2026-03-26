@@ -55,7 +55,8 @@ def crawl_with_rss(owner):
         feed = feedparser.parse(url)
         for entry in feed.entries:
             if not Article.objects.filter(owner=owner, url=entry['link']).exists():
-                article = Article.objects.create(owner=owner, title=entry['title'], content=entry['summary'], is_summary=True,
+                article = Article.objects.create(owner=owner, title=entry['title'], content=entry['summary'],
+                                                 is_summary=True,
                                                  url=entry['link'], source=feed.feed.title,
                                                  published_date=entry['published'])
                 image_url = extract_image(article=article, entry=entry)
@@ -78,17 +79,32 @@ def extract_image_from_independent(article):
                       "AppleWebKit/537.36 (KHTML, like Gecko) "
                       "Chrome/120.0.0.0 Safari/537.36"
     }
-    response = httpx.get(article.url, headers=headers, follow_redirects=True)
-    soup = BeautifulSoup(response.text, "html.parser")
-    images = soup.find_all("img")
-    if images:
-        if article.source == 'Transport Topics':
-            image_url = "https://www.ttnews.com" + images[1]['src']
-            save_image(image_url=image_url, article=article)
-        elif article.source == 'Truck News' and images[2]['src']:
-            save_image(image_url=images[2]['src'], article=article)
-        else:
-            save_image(image_url=images[1]['src'], article=article)
+    try:
+        response = httpx.get(article.url, headers=headers, follow_redirects=True, timeout=20)
+        soup = BeautifulSoup(response.text, "html.parser")
+        images = soup.find_all("img")
+
+        if not images:
+            return
+
+        try:
+            if article.source == 'Transport Topics':
+                src = images[1].get('src')
+                if src:
+                    save_image(image_url="https://www.ttnews.com" + src, article=article)
+            elif article.source == 'Truck News':
+                src = images[2].get('src') if len(images) > 2 else None
+                if src:
+                    save_image(image_url=src, article=article)
+            else:
+                src = images[1].get('src') if len(images) > 1 else None
+                if src:
+                    save_image(image_url=src, article=article)
+        except IndexError:
+            pass  # not enough images on the page
+
+    except Exception as e:
+        print(f"❌ extract_image_from_independent failed for {article.url}: {e}")
 
 
 def crawl_from_rss_http(owner):
