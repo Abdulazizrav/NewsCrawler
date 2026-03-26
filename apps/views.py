@@ -10,6 +10,8 @@ from decimal import Decimal, InvalidOperation
 import threading
 import subprocess
 from django.views.decorators.http import require_POST
+from apps.models.scheduled_send import ScheduledSend
+from django.utils.dateparse import parse_datetime
 
 from apps.models import Article, TelegramDelivery, TelegramChannel, Summary, Classification, Topic
 from apps.models.user_profile import UserProfile
@@ -35,26 +37,26 @@ def dashboard_home(request):
 def channel_admin_home(request):
     today = timezone.now().date()
 
-    user_articles   = Article.objects.filter(owner=request.user)
-    user_channels   = TelegramChannel.objects.filter(owner=request.user)
+    user_articles = Article.objects.filter(owner=request.user)
+    user_channels = TelegramChannel.objects.filter(owner=request.user)
     user_deliveries = TelegramDelivery.objects.filter(telegram_channel__owner=request.user)
 
-    total_articles    = user_articles.count()
-    total_summaries   = user_articles.filter(is_summary=True).count()
+    total_articles = user_articles.count()
+    total_summaries = user_articles.filter(is_summary=True).count()
     pending_summaries = user_articles.filter(is_summary=False).count()
-    active_channels   = user_channels.filter(is_active=True).count()
-    total_channels    = user_channels.count()
-    total_delivered   = user_deliveries.filter(status='sent').count()
+    active_channels = user_channels.filter(is_active=True).count()
+    total_channels = user_channels.count()
+    total_delivered = user_deliveries.filter(status='sent').count()
 
     try:
-        articles_today  = user_articles.filter(published_date__date=today).count()
-        messages_today  = user_deliveries.filter(sent_date__date=today).count()
-        revenue_today   = user_deliveries.filter(sent_date__date=today, status='sent') \
+        articles_today = user_articles.filter(published_date__date=today).count()
+        messages_today = user_deliveries.filter(sent_date__date=today).count()
+        revenue_today = user_deliveries.filter(sent_date__date=today, status='sent') \
                             .aggregate(total=Sum('cost_charged'))['total'] or Decimal('0.00')
     except Exception:
-        articles_today  = user_articles.filter(published_date__startswith=str(today)).count()
-        messages_today  = user_deliveries.filter(sent_date__startswith=str(today)).count()
-        revenue_today   = Decimal('0.00')
+        articles_today = user_articles.filter(published_date__startswith=str(today)).count()
+        messages_today = user_deliveries.filter(sent_date__startswith=str(today)).count()
+        revenue_today = Decimal('0.00')
 
     low_balance_channels = user_channels.filter(balance__lt=10, is_active=True).order_by('balance')[:5]
 
@@ -85,21 +87,23 @@ def channel_admin_home(request):
 @superadmin_required
 def superadmin_home(request):
     """Superadmin overview: all users, revenue, stats."""
-    today    = timezone.now().date()
+    today = timezone.now().date()
     week_ago = today - timedelta(days=7)
 
-    all_users     = UserProfile.objects.select_related('user', 'created_by').order_by('-created_at')
+    all_users = UserProfile.objects.select_related('user', 'created_by').order_by('-created_at')
     channel_admins = all_users.filter(role='channel_admin')
 
     all_deliveries = TelegramDelivery.objects.filter(status='sent')
-    all_channels   = TelegramChannel.objects.all()
-    all_articles   = Article.objects.all()
+    all_channels = TelegramChannel.objects.all()
+    all_articles = Article.objects.all()
 
     try:
-        total_revenue       = all_deliveries.aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')
-        revenue_today       = all_deliveries.filter(sent_date__date=today).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')
-        revenue_week        = all_deliveries.filter(sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')
-        messages_today      = all_deliveries.filter(sent_date__date=today).count()
+        total_revenue = all_deliveries.aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')
+        revenue_today = all_deliveries.filter(sent_date__date=today).aggregate(t=Sum('cost_charged'))['t'] or Decimal(
+            '0.00')
+        revenue_week = all_deliveries.filter(sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))[
+                           't'] or Decimal('0.00')
+        messages_today = all_deliveries.filter(sent_date__date=today).count()
     except Exception:
         total_revenue = revenue_today = revenue_week = Decimal('0.00')
         messages_today = 0
@@ -113,24 +117,24 @@ def superadmin_home(request):
         channels = TelegramChannel.objects.filter(owner=u)
         total_balance = channels.aggregate(t=Sum('balance'))['t'] or Decimal('0.00')
         user_billing.append({
-            'profile':       profile,
-            'spent':         spent,
+            'profile': profile,
+            'spent': spent,
             'total_balance': total_balance,
-            'channels':      channels.count(),
-            'articles':      Article.objects.filter(owner=u).count(),
+            'channels': channels.count(),
+            'articles': Article.objects.filter(owner=u).count(),
             'messages_sent': deliveries.count(),
         })
 
     context = {
-        'all_users':       all_users,
-        'channel_admins':  channel_admins,
-        'total_revenue':   total_revenue,
-        'revenue_today':   revenue_today,
-        'revenue_week':    revenue_week,
-        'messages_today':  messages_today,
-        'total_channels':  all_channels.count(),
-        'total_articles':  all_articles.count(),
-        'user_billing':    user_billing,
+        'all_users': all_users,
+        'channel_admins': channel_admins,
+        'total_revenue': total_revenue,
+        'revenue_today': revenue_today,
+        'revenue_week': revenue_week,
+        'messages_today': messages_today,
+        'total_channels': all_channels.count(),
+        'total_articles': all_articles.count(),
+        'user_billing': user_billing,
     }
     return render(request, 'superadmin/home.html', context)
 
@@ -147,9 +151,9 @@ def superadmin_users(request):
 @require_POST
 def superadmin_user_create(request):
     """Create a new channel admin account."""
-    username  = request.POST.get('username', '').strip()
-    password  = request.POST.get('password', '').strip()
-    email     = request.POST.get('email', '').strip()
+    username = request.POST.get('username', '').strip()
+    password = request.POST.get('password', '').strip()
+    email = request.POST.get('email', '').strip()
     first_name = request.POST.get('first_name', '').strip()
 
     if not username or not password:
@@ -196,7 +200,7 @@ def superadmin_user_delete(request, pk):
     """Delete a channel admin and all their data."""
     profile = get_object_or_404(UserProfile, pk=pk)
     username = profile.user.username
-    profile.user.delete()   # cascades to profile, articles, channels, etc.
+    profile.user.delete()  # cascades to profile, articles, channels, etc.
     messages.success(request, f'User "{username}" and all their data deleted.')
     return redirect('dashboard:superadmin_users')
 
@@ -204,29 +208,31 @@ def superadmin_user_delete(request, pk):
 @superadmin_required
 def superadmin_user_detail(request, pk):
     """View full stats for a specific channel admin."""
-    profile  = get_object_or_404(UserProfile, pk=pk)
-    u        = profile.user
-    today    = timezone.now().date()
+    profile = get_object_or_404(UserProfile, pk=pk)
+    u = profile.user
+    today = timezone.now().date()
     week_ago = today - timedelta(days=7)
 
-    channels   = TelegramChannel.objects.filter(owner=u).select_related('topic')
+    channels = TelegramChannel.objects.filter(owner=u).select_related('topic')
     deliveries = TelegramDelivery.objects.filter(telegram_channel__owner=u)
-    articles   = Article.objects.filter(owner=u)
+    articles = Article.objects.filter(owner=u)
 
     try:
-        total_spent    = deliveries.filter(status='sent').aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')
-        spent_today    = deliveries.filter(status='sent', sent_date__date=today).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')
-        spent_week     = deliveries.filter(status='sent', sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')
-        total_balance  = channels.aggregate(t=Sum('balance'))['t'] or Decimal('0.00')
+        total_spent = deliveries.filter(status='sent').aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')
+        spent_today = deliveries.filter(status='sent', sent_date__date=today).aggregate(t=Sum('cost_charged'))[
+                          't'] or Decimal('0.00')
+        spent_week = deliveries.filter(status='sent', sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))[
+                         't'] or Decimal('0.00')
+        total_balance = channels.aggregate(t=Sum('balance'))['t'] or Decimal('0.00')
     except Exception:
         total_spent = spent_today = spent_week = total_balance = Decimal('0.00')
 
     context = {
-        'profile':      profile,
-        'channels':     channels,
-        'total_spent':  total_spent,
-        'spent_today':  spent_today,
-        'spent_week':   spent_week,
+        'profile': profile,
+        'channels': channels,
+        'total_spent': total_spent,
+        'spent_today': spent_today,
+        'spent_week': spent_week,
         'total_balance': total_balance,
         'articles_count': articles.count(),
         'summaries_count': Summary.objects.filter(article__owner=u).count(),
@@ -239,7 +245,7 @@ def superadmin_user_detail(request, pk):
 @superadmin_required
 def superadmin_billing(request):
     """Full billing page across all users."""
-    today    = timezone.now().date()
+    today = timezone.now().date()
     week_ago = today - timedelta(days=7)
     month_ago = today - timedelta(days=30)
 
@@ -251,13 +257,15 @@ def superadmin_billing(request):
         d = TelegramDelivery.objects.filter(telegram_channel__owner=u, status='sent')
         try:
             billing_data.append({
-                'profile':     profile,
-                'total':       d.aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
-                'today':       d.filter(sent_date__date=today).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
-                'week':        d.filter(sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
-                'month':       d.filter(sent_date__date__gte=month_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
-                'msg_count':   d.count(),
-                'balance':     TelegramChannel.objects.filter(owner=u).aggregate(t=Sum('balance'))['t'] or Decimal('0.00'),
+                'profile': profile,
+                'total': d.aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
+                'today': d.filter(sent_date__date=today).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
+                'week': d.filter(sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal(
+                    '0.00'),
+                'month': d.filter(sent_date__date__gte=month_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal(
+                    '0.00'),
+                'msg_count': d.count(),
+                'balance': TelegramChannel.objects.filter(owner=u).aggregate(t=Sum('balance'))['t'] or Decimal('0.00'),
             })
         except Exception:
             billing_data.append({
@@ -275,7 +283,7 @@ def superadmin_billing(request):
 @superadmin_required
 def superadmin_statistics(request):
     """Platform-wide statistics."""
-    today    = timezone.now().date()
+    today = timezone.now().date()
     week_ago = today - timedelta(days=7)
     month_ago = today - timedelta(days=30)
 
@@ -285,24 +293,26 @@ def superadmin_statistics(request):
         stats = {
             'revenue': {
                 'today': all_d.filter(sent_date__date=today).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
-                'week':  all_d.filter(sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
-                'month': all_d.filter(sent_date__date__gte=month_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
+                'week': all_d.filter(sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal(
+                    '0.00'),
+                'month': all_d.filter(sent_date__date__gte=month_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal(
+                    '0.00'),
                 'total': all_d.aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
             },
             'messages': {
                 'today': all_d.filter(sent_date__date=today).count(),
-                'week':  all_d.filter(sent_date__date__gte=week_ago).count(),
+                'week': all_d.filter(sent_date__date__gte=week_ago).count(),
                 'month': all_d.filter(sent_date__date__gte=month_ago).count(),
                 'total': all_d.count(),
             },
         }
     except Exception:
         stats = {
-            'revenue':  {'today': 0, 'week': 0, 'month': 0, 'total': 0},
+            'revenue': {'today': 0, 'week': 0, 'month': 0, 'total': 0},
             'messages': {'today': 0, 'week': 0, 'month': 0, 'total': 0},
         }
 
-    stats['users']    = UserProfile.objects.filter(role='channel_admin').count()
+    stats['users'] = UserProfile.objects.filter(role='channel_admin').count()
     stats['channels'] = TelegramChannel.objects.count()
     stats['articles'] = Article.objects.count()
 
@@ -384,7 +394,8 @@ def summary_list(request):
     summaries = Summary.objects.filter(article__owner=request.user).select_related('article').order_by('-created_date')
     from django.core.paginator import Paginator
     page_obj = Paginator(summaries, 30).get_page(request.GET.get('page'))
-    user_channels = TelegramChannel.objects.filter(owner=request.user, is_active=True).select_related('topic').order_by('name')
+    user_channels = TelegramChannel.objects.filter(owner=request.user, is_active=True).select_related('topic').order_by(
+        'name')
     return render(request, 'summaries.html', {'page_obj': page_obj, 'user_channels': user_channels})
 
 
@@ -392,7 +403,7 @@ def summary_list(request):
 @require_POST
 def summary_edit(request, pk):
     summary = get_object_or_404(Summary, pk=pk, article__owner=request.user)
-    new_text  = request.POST.get('summary_text', '').strip()
+    new_text = request.POST.get('summary_text', '').strip()
     new_title = request.POST.get('translated_title', '').strip()
     if not new_text:
         messages.error(request, 'Summary text cannot be empty.')
@@ -404,6 +415,7 @@ def summary_edit(request, pk):
         summary.article.save(update_fields=['title'])
     messages.success(request, 'Summary updated successfully!')
     return redirect('dashboard:summary_list')
+
 
 @login_required(login_url='/login/')
 @require_POST
@@ -418,8 +430,11 @@ def summary_send_selected(request):
         messages.error(request, 'No channels selected.')
         return redirect('dashboard:summary_list')
 
-    valid_summary_ids = list(Summary.objects.filter(pk__in=summary_ids, article__owner=request.user).values_list('pk', flat=True))
-    valid_channel_ids = list(TelegramChannel.objects.filter(pk__in=channel_ids, owner=request.user, is_active=True).values_list('pk', flat=True))
+    valid_summary_ids = list(
+        Summary.objects.filter(pk__in=summary_ids, article__owner=request.user).values_list('pk', flat=True))
+    valid_channel_ids = list(
+        TelegramChannel.objects.filter(pk__in=channel_ids, owner=request.user, is_active=True).values_list('pk',
+                                                                                                           flat=True))
 
     if not valid_summary_ids or not valid_channel_ids:
         messages.error(request, 'No valid summaries or channels found.')
@@ -440,14 +455,16 @@ def summary_send_selected(request):
 
 @login_required(login_url='/login/')
 def classification_list(request):
-    classifications = Classification.objects.filter(article__owner=request.user).select_related('article', 'topic').order_by('-id')
+    classifications = Classification.objects.filter(article__owner=request.user).select_related('article',
+                                                                                                'topic').order_by('-id')
     topic_filter = request.GET.get('topic')
     if topic_filter:
         classifications = classifications.filter(topic_id=topic_filter)
     from django.core.paginator import Paginator
     page_obj = Paginator(classifications, 30).get_page(request.GET.get('page'))
     topics = Topic.objects.all().order_by('name')  # all superadmin topics
-    return render(request, 'classifications.html', {'page_obj': page_obj, 'topics': topics, 'current_topic': topic_filter})
+    return render(request, 'classifications.html',
+                  {'page_obj': page_obj, 'topics': topics, 'current_topic': topic_filter})
 
 
 @login_required(login_url='/login/')
@@ -547,6 +564,7 @@ def channel_add(request):
     return render(request, 'channel_form.html',
                   {'topics': topics, 'action': 'Add', 'preselected_topic': preselected_topic})
 
+
 @login_required(login_url='/login/')
 def channel_edit(request, pk):
     channel = get_object_or_404(TelegramChannel, pk=pk, owner=request.user)
@@ -608,33 +626,55 @@ def delivery_list(request):
     from django.core.paginator import Paginator
     page_obj = Paginator(deliveries, 50).get_page(request.GET.get('page'))
     channels = TelegramChannel.objects.filter(owner=request.user)
-    return render(request, 'deliveries.html', {'page_obj': page_obj, 'channels': channels, 'current_channel': channel_id, 'current_status': status})
+    return render(request, 'deliveries.html',
+                  {'page_obj': page_obj, 'channels': channels, 'current_channel': channel_id, 'current_status': status})
 
 
 @login_required(login_url='/login/')
 def statistics(request):
-    today    = timezone.now().date()
+    today = timezone.now().date()
     week_ago = today - timedelta(days=7)
     month_ago = today - timedelta(days=30)
 
-    user_articles   = Article.objects.filter(owner=request.user)
+    user_articles = Article.objects.filter(owner=request.user)
     user_deliveries = TelegramDelivery.objects.filter(telegram_channel__owner=request.user)
-    user_channels   = TelegramChannel.objects.filter(owner=request.user)
-    user_topics     = Topic.objects.filter(owner=request.user)
+    user_channels = TelegramChannel.objects.filter(owner=request.user)
+    user_topics = Topic.objects.filter(owner=request.user)
 
     try:
         stats = {
-            'articles':   {'today': user_articles.filter(published_date__date=today).count(), 'week': user_articles.filter(published_date__date__gte=week_ago).count(), 'month': user_articles.filter(published_date__date__gte=month_ago).count(), 'total': user_articles.count()},
-            'deliveries': {'today': user_deliveries.filter(sent_date__date=today, status='sent').count(), 'week': user_deliveries.filter(sent_date__date__gte=week_ago, status='sent').count(), 'month': user_deliveries.filter(sent_date__date__gte=month_ago, status='sent').count(), 'total': user_deliveries.filter(status='sent').count()},
-            'revenue':    {'today': user_deliveries.filter(sent_date__date=today, status='sent').aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'), 'week': user_deliveries.filter(sent_date__date__gte=week_ago, status='sent').aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'), 'month': user_deliveries.filter(sent_date__date__gte=month_ago, status='sent').aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'), 'total': user_deliveries.filter(status='sent').aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')},
+            'articles': {'today': user_articles.filter(published_date__date=today).count(),
+                         'week': user_articles.filter(published_date__date__gte=week_ago).count(),
+                         'month': user_articles.filter(published_date__date__gte=month_ago).count(),
+                         'total': user_articles.count()},
+            'deliveries': {'today': user_deliveries.filter(sent_date__date=today, status='sent').count(),
+                           'week': user_deliveries.filter(sent_date__date__gte=week_ago, status='sent').count(),
+                           'month': user_deliveries.filter(sent_date__date__gte=month_ago, status='sent').count(),
+                           'total': user_deliveries.filter(status='sent').count()},
+            'revenue': {
+                'today': user_deliveries.filter(sent_date__date=today, status='sent').aggregate(t=Sum('cost_charged'))[
+                             't'] or Decimal('0.00'), 'week':
+                    user_deliveries.filter(sent_date__date__gte=week_ago, status='sent').aggregate(
+                        t=Sum('cost_charged'))['t'] or Decimal('0.00'), 'month':
+                    user_deliveries.filter(sent_date__date__gte=month_ago, status='sent').aggregate(
+                        t=Sum('cost_charged'))['t'] or Decimal('0.00'),
+                'total': user_deliveries.filter(status='sent').aggregate(t=Sum('cost_charged'))['t'] or Decimal(
+                    '0.00')},
         }
     except Exception:
-        stats = {'articles': {'today': 0, 'week': 0, 'month': 0, 'total': user_articles.count()}, 'deliveries': {'today': 0, 'week': 0, 'month': 0, 'total': 0}, 'revenue': {'today': Decimal('0.00'), 'week': Decimal('0.00'), 'month': Decimal('0.00'), 'total': Decimal('0.00')}}
+        stats = {'articles': {'today': 0, 'week': 0, 'month': 0, 'total': user_articles.count()},
+                 'deliveries': {'today': 0, 'week': 0, 'month': 0, 'total': 0},
+                 'revenue': {'today': Decimal('0.00'), 'week': Decimal('0.00'), 'month': Decimal('0.00'),
+                             'total': Decimal('0.00')}}
 
-    top_channels = user_channels.annotate(message_count=Count('telegram_deliveries', filter=Q(telegram_deliveries__status='sent'))).order_by('-message_count')[:10]
-    topics_stats = user_topics.annotate(article_count=Count('topic_classifications', filter=Q(topic_classifications__article__owner=request.user))).order_by('-article_count')
+    top_channels = user_channels.annotate(
+        message_count=Count('telegram_deliveries', filter=Q(telegram_deliveries__status='sent'))).order_by(
+        '-message_count')[:10]
+    topics_stats = user_topics.annotate(article_count=Count('topic_classifications', filter=Q(
+        topic_classifications__article__owner=request.user))).order_by('-article_count')
 
-    return render(request, 'statistics.html', {'stats': stats, 'top_channels': top_channels, 'topics_stats': topics_stats})
+    return render(request, 'statistics.html',
+                  {'stats': stats, 'top_channels': top_channels, 'topics_stats': topics_stats})
 
 
 # ── Management command triggers ──────────────────────────
@@ -683,3 +723,55 @@ def check_payments(request):
         threading.Thread(target=lambda: call_command('check_channel_payments')).start()
         messages.success(request, 'Payment check started!')
     return redirect('dashboard:home')
+
+
+@login_required(login_url='/login/')
+@require_POST
+def summary_schedule_selected(request):
+    summary_ids = request.POST.getlist('summary_ids')
+    channel_ids = request.POST.getlist('channel_ids')
+    scheduled_time_str = request.POST.get('scheduled_time')
+
+    if not summary_ids:
+        messages.error(request, 'No summaries selected.')
+        return redirect('dashboard:summary_list')
+    if not channel_ids:
+        messages.error(request, 'No channels selected.')
+        return redirect('dashboard:summary_list')
+    if not scheduled_time_str:
+        messages.error(request, 'No scheduled time provided.')
+        return redirect('dashboard:summary_list')
+
+    valid_summary_ids = list(Summary.objects.filter(
+        pk__in=summary_ids, article__owner=request.user
+    ).values_list('pk', flat=True))
+
+    valid_channel_ids = list(TelegramChannel.objects.filter(
+        pk__in=channel_ids, owner=request.user, is_active=True
+    ).values_list('pk', flat=True))
+
+    if not valid_summary_ids or not valid_channel_ids:
+        messages.error(request, 'No valid summaries or channels found.')
+        return redirect('dashboard:summary_list')
+
+    # Parse datetime from form (format: 2026-03-26T14:30)
+    from django.utils import timezone
+    import datetime
+    scheduled_time = timezone.make_aware(
+        datetime.datetime.fromisoformat(scheduled_time_str)
+    )
+
+    if scheduled_time <= timezone.now():
+        messages.error(request, 'Scheduled time must be in the future.')
+        return redirect('dashboard:summary_list')
+
+    ScheduledSend.objects.create(
+        user=request.user,
+        summary_ids=','.join(str(i) for i in valid_summary_ids),
+        channel_ids=','.join(str(i) for i in valid_channel_ids),
+        scheduled_time=scheduled_time,
+    )
+
+    messages.success(request,
+                     f'Scheduled {len(valid_summary_ids)} summaries for {scheduled_time.strftime("%b %d, %Y at %H:%M")}!')
+    return redirect('dashboard:summary_list')

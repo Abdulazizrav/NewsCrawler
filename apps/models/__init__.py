@@ -5,7 +5,7 @@ from apps.models.telegram_channel import TelegramChannel
 from apps.models.telegram_delivery import TelegramDelivery
 from apps.models.topic import Topic
 from apps.models.user_profile import UserProfile
-
+from apps.models.scheduled_send import ScheduledSend
 __all__ = (
     Article,
     ArticleImage,
@@ -14,5 +14,6 @@ __all__ = (
     Classification,
     TelegramChannel,
     TelegramDelivery,
-    UserProfile
+    UserProfile,
+    ScheduledSend
 )

@@ -9,16 +9,18 @@ class AppsConfig(AppConfig):
     def ready(self):
         import apps.signals  # noqa
 
-        # Delay DB query until after app is fully ready
         from django.db import connection
         try:
             connection.ensure_connection()
         except Exception:
-            return  # DB not available, skip startup pipelines
+            return
 
         if os.environ.get('DYNO') or os.environ.get('RUN_MAIN'):
             from django.db import close_old_connections
             close_old_connections()
+            # Start scheduled send checker (global, runs once)
+            from apps.scheduler_manager import start_scheduled_send_checker
+            start_scheduled_send_checker()
             self._start_pipelines()
 
     def _start_pipelines(self):

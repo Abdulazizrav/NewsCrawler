@@ -56,7 +56,7 @@
 </div>
 
 <!-- ═══════════════════════════════════════════
-     CHANNEL PICKER MODAL
+     CHANNEL PICKER MODAL (Send)
 ════════════════════════════════════════════ -->
 <div id="channelModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
@@ -72,14 +72,11 @@
         </div>
 
         <div class="p-5">
-            <!-- Select all channels -->
             <label class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer mb-3 hover:bg-gray-100 transition-colors">
                 <input type="checkbox" id="selectAllChannels" onchange="toggleAllChannels(this)"
                     class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                 <span class="text-sm font-semibold text-gray-700">Select All Channels</span>
             </label>
-
-            <!-- Channel list -->
             <div class="space-y-2 max-h-72 overflow-y-auto pr-1" id="channelList">
                 {% for channel in user_channels %}
                 <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors channel-option">
@@ -89,8 +86,7 @@
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-gray-800 truncate">{{ channel.name }}</p>
                         <p class="text-xs text-gray-400 truncate">
-                            {{ channel.topic.name }} &nbsp;·&nbsp;
-                            Balance: ${{ channel.balance }}
+                            {{ channel.topic.name }} &nbsp;·&nbsp; Balance: ${{ channel.balance }}
                         </p>
                     </div>
                     {% if not channel.is_active %}
@@ -119,25 +115,99 @@
     </div>
 </div>
 
+<!-- ═══════════════════════════════════════════
+     SCHEDULE MODAL
+════════════════════════════════════════════ -->
+<div id="scheduleModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
+        <div class="flex items-center justify-between p-5 border-b">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">📅 Schedule Send</h2>
+                <p class="text-sm text-gray-500 mt-0.5">
+                    Schedule <span id="scheduleModalCount" class="font-semibold text-purple-600"></span> to be sent later
+                </p>
+            </div>
+            <button onclick="closeScheduleModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+        </div>
+
+        <div class="p-5 space-y-4">
+            <!-- Channel selection -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Channels</label>
+                <label class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer mb-2 hover:bg-gray-100 transition-colors">
+                    <input type="checkbox" id="scheduleSelectAllChannels" onchange="toggleAllScheduleChannels(this)"
+                        class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                    <span class="text-sm font-semibold text-gray-700">Select All Channels</span>
+                </label>
+                <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {% for channel in user_channels %}
+                    <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-purple-50 hover:border-purple-300 transition-colors">
+                        <input type="checkbox" value="{{ channel.pk }}"
+                            onchange="updateScheduleChannelSelectAll()"
+                            class="schedule-channel-checkbox w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-800 truncate">{{ channel.name }}</p>
+                            <p class="text-xs text-gray-400 truncate">
+                                {{ channel.topic.name }} &nbsp;·&nbsp; Balance: ${{ channel.balance }}
+                            </p>
+                        </div>
+                    </label>
+                    {% empty %}
+                    <p class="text-sm text-gray-500 text-center py-4">No active channels found.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Date & Time picker -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Send At</label>
+                <input type="datetime-local" id="scheduleDateTime"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <p class="text-xs text-gray-400 mt-1">Must be at least 1 minute in the future.</p>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 p-5 border-t bg-gray-50 rounded-b-xl">
+            <button type="button" onclick="closeScheduleModal()"
+                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                Cancel
+            </button>
+            <button type="button" onclick="submitSchedule()"
+                id="confirmScheduleBtn"
+                class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                disabled>
+                <i class="fas fa-clock text-xs"></i>
+                Confirm Schedule
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Hidden data store -->
 <div id="summaryDataStore" class="hidden">
     {% for summary in page_obj %}
-    <div
-        data-id="{{ summary.pk }}"
-        data-title="{{ summary.article.title|escapejs }}"
-        data-text="{{ summary.summary_text|escapejs }}"
-    ></div>
+    <div data-id="{{ summary.pk }}"
+         data-title="{{ summary.article.title|escapejs }}"
+         data-text="{{ summary.summary_text|escapejs }}"></div>
     {% endfor %}
 </div>
 
-<!-- Real form that gets submitted -->
+<!-- Send form -->
 <form method="POST" action="{% url 'dashboard:summary_send_selected' %}" id="sendForm">
     {% csrf_token %}
     <div id="hiddenSummaryIds"></div>
     <div id="hiddenChannelIds"></div>
 </form>
 
-<!-- Main page form (checkboxes only — does NOT submit, feeds the real form) -->
+<!-- Schedule form -->
+<form method="POST" action="{% url 'dashboard:summary_schedule_selected' %}" id="scheduleForm">
+    {% csrf_token %}
+    <div id="scheduleHiddenSummaryIds"></div>
+    <div id="scheduleHiddenChannelIds"></div>
+    <input type="hidden" name="scheduled_time" id="scheduleFormTime">
+</form>
+
+<!-- Main content -->
 <div class="bg-white rounded-lg shadow">
 
     <!-- Toolbar -->
@@ -153,14 +223,28 @@
                 &nbsp;|&nbsp; Selected: <span id="selectedCount" class="font-semibold text-blue-600">0</span>
             </span>
         </div>
-        <button type="button"
-            id="sendBtn"
-            onclick="openChannelModal()"
-            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            disabled>
-            <i class="fas fa-paper-plane text-xs"></i>
-            Send Selected
-        </button>
+
+        <!-- Action buttons -->
+        <div class="flex items-center gap-2">
+            <!-- Schedule button -->
+            <button type="button"
+                id="scheduleBtn"
+                onclick="openScheduleModal()"
+                class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-700 bg-white border border-purple-300 rounded-lg hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                disabled>
+                <i class="fas fa-clock text-xs"></i>
+                Schedule
+            </button>
+            <!-- Send button -->
+            <button type="button"
+                id="sendBtn"
+                onclick="openChannelModal()"
+                class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                disabled>
+                <i class="fas fa-paper-plane text-xs"></i>
+                Send Selected
+            </button>
+        </div>
     </div>
 
     <!-- Summary List -->
@@ -168,13 +252,11 @@
         {% for summary in page_obj %}
         <div class="p-5 hover:bg-gray-50 transition-colors group">
             <div class="flex items-start gap-3">
-
                 <div class="mt-1 flex-shrink-0">
                     <input type="checkbox" value="{{ summary.pk }}"
                         onchange="updateSelectedCount()"
                         class="summary-checkbox w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
                 </div>
-
                 <div class="flex-1 min-w-0">
                     <div class="flex items-start justify-between gap-2">
                         <a href="{% url 'dashboard:article_detail' summary.article.pk %}"
@@ -227,16 +309,13 @@
         </div>
     </div>
     {% endif %}
-
 </div>
 
 <script>
-    // ── Data store ───────────────────────────────────────────
     const summaryData = {};
     document.querySelectorAll('#summaryDataStore [data-id]').forEach(el => {
         summaryData[el.dataset.id] = { title: el.dataset.title, text: el.dataset.text };
     });
-
     const BASE_EDIT_URL = "{% url 'dashboard:summary_edit' 0 %}";
 
     // ── Edit Modal ───────────────────────────────────────────
@@ -245,8 +324,7 @@
         if (!data) return;
         document.getElementById('editArticleTitle').value = data.title;
         document.getElementById('editSummaryText').value  = data.text;
-        document.getElementById('editForm').action =
-            BASE_EDIT_URL.replace('/0/', '/' + summaryId + '/');
+        document.getElementById('editForm').action = BASE_EDIT_URL.replace('/0/', '/' + summaryId + '/');
         showModal('editModal');
     }
     function closeEditModal() { hideModal('editModal'); }
@@ -261,24 +339,21 @@
         const checked = document.querySelectorAll('.summary-checkbox:checked').length;
         const total   = document.querySelectorAll('.summary-checkbox').length;
         document.getElementById('selectedCount').textContent = checked;
-        document.getElementById('sendBtn').disabled = checked === 0;
+        document.getElementById('sendBtn').disabled     = checked === 0;
+        document.getElementById('scheduleBtn').disabled = checked === 0;
         const master = document.getElementById('selectAll');
         master.indeterminate = checked > 0 && checked < total;
         master.checked = checked === total && total > 0;
     }
 
-    // ── Channel Modal ────────────────────────────────────────
+    // ── Send Channel Modal ───────────────────────────────────
     function openChannelModal() {
         const count = document.querySelectorAll('.summary-checkbox:checked').length;
-        document.getElementById('channelModalCount').textContent =
-            count + ' summar' + (count === 1 ? 'y' : 'ies');
-
-        // Reset channel checkboxes
+        document.getElementById('channelModalCount').textContent = count + ' summar' + (count === 1 ? 'y' : 'ies');
         document.querySelectorAll('.channel-checkbox').forEach(cb => cb.checked = false);
         document.getElementById('selectAllChannels').checked = false;
         document.getElementById('selectAllChannels').indeterminate = false;
         document.getElementById('confirmSendBtn').disabled = true;
-
         showModal('channelModal');
     }
     function closeChannelModal() { hideModal('channelModal'); }
@@ -287,7 +362,6 @@
         document.querySelectorAll('.channel-checkbox').forEach(cb => cb.checked = master.checked);
         updateChannelSelectAll();
     }
-
     function updateChannelSelectAll() {
         const checked = document.querySelectorAll('.channel-checkbox:checked').length;
         const total   = document.querySelectorAll('.channel-checkbox').length;
@@ -297,36 +371,94 @@
         document.getElementById('confirmSendBtn').disabled = checked === 0;
     }
 
-    // ── Submit with both summary IDs and channel IDs ─────────
     function submitSend() {
         const summaryIds = [...document.querySelectorAll('.summary-checkbox:checked')].map(cb => cb.value);
         const channelIds = [...document.querySelectorAll('.channel-checkbox:checked')].map(cb => cb.value);
+        if (!summaryIds.length || !channelIds.length) return;
 
-        if (summaryIds.length === 0 || channelIds.length === 0) return;
-
-        // Inject hidden inputs into the real form
         const sContainer = document.getElementById('hiddenSummaryIds');
         const cContainer = document.getElementById('hiddenChannelIds');
+        sContainer.innerHTML = '';
+        cContainer.innerHTML = '';
+        summaryIds.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden'; input.name = 'summary_ids'; input.value = id;
+            sContainer.appendChild(input);
+        });
+        channelIds.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden'; input.name = 'channel_ids'; input.value = id;
+            cContainer.appendChild(input);
+        });
+        document.getElementById('sendForm').submit();
+    }
+
+    // ── Schedule Modal ───────────────────────────────────────
+    function openScheduleModal() {
+        const count = document.querySelectorAll('.summary-checkbox:checked').length;
+        document.getElementById('scheduleModalCount').textContent = count + ' summar' + (count === 1 ? 'y' : 'ies');
+
+        // Reset
+        document.querySelectorAll('.schedule-channel-checkbox').forEach(cb => cb.checked = false);
+        document.getElementById('scheduleSelectAllChannels').checked = false;
+        document.getElementById('scheduleSelectAllChannels').indeterminate = false;
+        document.getElementById('confirmScheduleBtn').disabled = true;
+
+        // Set minimum datetime to 1 minute from now
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 1);
+        document.getElementById('scheduleDateTime').min = now.toISOString().slice(0, 16);
+        document.getElementById('scheduleDateTime').value = '';
+
+        showModal('scheduleModal');
+    }
+    function closeScheduleModal() { hideModal('scheduleModal'); }
+
+    function toggleAllScheduleChannels(master) {
+        document.querySelectorAll('.schedule-channel-checkbox').forEach(cb => cb.checked = master.checked);
+        updateScheduleChannelSelectAll();
+    }
+    function updateScheduleChannelSelectAll() {
+        const checked = document.querySelectorAll('.schedule-channel-checkbox:checked').length;
+        const total   = document.querySelectorAll('.schedule-channel-checkbox').length;
+        const master  = document.getElementById('scheduleSelectAllChannels');
+        master.indeterminate = checked > 0 && checked < total;
+        master.checked = checked === total && total > 0;
+        updateConfirmScheduleBtn();
+    }
+    function updateConfirmScheduleBtn() {
+        const channels = document.querySelectorAll('.schedule-channel-checkbox:checked').length;
+        const time     = document.getElementById('scheduleDateTime').value;
+        document.getElementById('confirmScheduleBtn').disabled = channels === 0 || !time;
+    }
+
+    document.getElementById('scheduleDateTime').addEventListener('change', updateConfirmScheduleBtn);
+
+    function submitSchedule() {
+        const summaryIds = [...document.querySelectorAll('.summary-checkbox:checked')].map(cb => cb.value);
+        const channelIds = [...document.querySelectorAll('.schedule-channel-checkbox:checked')].map(cb => cb.value);
+        const time       = document.getElementById('scheduleDateTime').value;
+
+        if (!summaryIds.length || !channelIds.length || !time) return;
+
+        const sContainer = document.getElementById('scheduleHiddenSummaryIds');
+        const cContainer = document.getElementById('scheduleHiddenChannelIds');
         sContainer.innerHTML = '';
         cContainer.innerHTML = '';
 
         summaryIds.forEach(id => {
             const input = document.createElement('input');
-            input.type  = 'hidden';
-            input.name  = 'summary_ids';
-            input.value = id;
+            input.type = 'hidden'; input.name = 'summary_ids'; input.value = id;
             sContainer.appendChild(input);
         });
-
         channelIds.forEach(id => {
             const input = document.createElement('input');
-            input.type  = 'hidden';
-            input.name  = 'channel_ids';
-            input.value = id;
+            input.type = 'hidden'; input.name = 'channel_ids'; input.value = id;
             cContainer.appendChild(input);
         });
 
-        document.getElementById('sendForm').submit();
+        document.getElementById('scheduleFormTime').value = time;
+        document.getElementById('scheduleForm').submit();
     }
 
     // ── Modal helpers ────────────────────────────────────────
@@ -341,18 +473,17 @@
         m.classList.remove('flex');
     }
 
-    // Close on backdrop click
-    ['editModal', 'channelModal'].forEach(id => {
+    ['editModal', 'channelModal', 'scheduleModal'].forEach(id => {
         document.getElementById(id).addEventListener('click', function(e) {
             if (e.target === this) hideModal(id);
         });
     });
 
-    // Close on Escape
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
             hideModal('editModal');
             hideModal('channelModal');
+            hideModal('scheduleModal');
         }
     });
 </script>
