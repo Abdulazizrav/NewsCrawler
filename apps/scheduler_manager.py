@@ -111,14 +111,15 @@ def _scheduled_send_loop():
 
 def _user_pipeline_loop(user_id: int):
     try:
+        time.sleep(60)  # ✅ wait before first run
         while True:
             logger.info(f"⚡ [user={user_id}] Running pipeline...")
             _run_command(['python', 'manage.py', 'crawl_news', f'--user_id={user_id}'], user_id, 'Crawl')
-            time.sleep(5)
+            time.sleep(10)
             _run_command(['python', 'manage.py', 'summarize', f'--user_id={user_id}'], user_id, 'Summarize')
-            time.sleep(5)
+            time.sleep(10)
             _run_command(['python', 'manage.py', 'classify_articles', f'--user_id={user_id}'], user_id, 'Classify')
-            time.sleep(5)
+            time.sleep(10)
             logger.info(f"🏁 [user={user_id}] Pipeline done. Sleeping 1 hour...")
             time.sleep(3600)
     except Exception as e:

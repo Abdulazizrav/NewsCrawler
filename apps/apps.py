@@ -17,7 +17,7 @@ class AppsConfig(AppConfig):
         import time
 
         def delayed_start():
-            time.sleep(15)
+            time.sleep(60)  # ✅ wait 60 seconds instead of 15
             try:
                 from apps.scheduler_manager import start_scheduled_send_checker, start_all_pipelines
                 start_scheduled_send_checker()
