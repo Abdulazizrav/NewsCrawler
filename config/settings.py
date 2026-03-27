@@ -60,7 +60,11 @@ DATABASES = {
         'USER': os.environ.get('MYSQL_USER', 'root'),
         'PASSWORD': os.environ.get('MYSQL_PASSWORD', 'pRjiFndKAOcuwugEGOpeLLYMmmMZYlsz'),
         'HOST': os.environ.get('MYSQL_HOST', 'crossover.proxy.rlwy.net'),
-        'PORT': os.environ.get('MYSQL_PORT', '48027')
+        'PORT': os.environ.get('MYSQL_PORT', '48027'),
+        'CONN_MAX_AGE': 0,  # ✅ close connections immediately after each request
+        'OPTIONS': {
+            'connect_timeout': 30,
+        }
     }
 }
 

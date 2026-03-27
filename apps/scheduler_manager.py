@@ -2,7 +2,7 @@ import threading
 import time
 import logging
 import subprocess
-from django.utils import timezone
+from django.db import close_old_connections
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,6 @@ def start_user_pipeline(user_id: int):
 
 
 def start_scheduled_send_checker():
-    """Start a single global thread that checks for scheduled sends every minute."""
     global _scheduler_started
     with _lock:
         if _scheduler_started:
@@ -48,44 +47,27 @@ def start_scheduled_send_checker():
 def _scheduled_send_loop():
     while True:
         try:
+            close_old_connections()  # ✅ reuse connections
             from apps.models.scheduled_send import ScheduledSend
+            from django.utils import timezone
             now = timezone.now()
-
-            pending = ScheduledSend.objects.filter(
-                is_sent=False,
-                scheduled_time__lte=now
-            )
-
-            logger.info(f"🔥 Scheduler running... {pending.count()} pending")
-
+            pending = ScheduledSend.objects.filter(is_sent=False, scheduled_time__lte=now)
             for scheduled in pending:
-                logger.info(f"⏰ Firing scheduled send id={scheduled.id}")
-
+                logger.info(f"⏰ Firing scheduled send id={scheduled.id} for user={scheduled.user_id}")
                 subprocess.Popen([
                     'python', 'manage.py', 'send_to_telegram',
                     f'--user_id={scheduled.user_id}',
                     f'--summary_ids={scheduled.summary_ids}',
                     f'--channel_ids={scheduled.channel_ids}',
                 ])
-
                 scheduled.is_sent = True
                 scheduled.save()
-
         except Exception as e:
             logger.error(f"❌ Scheduled send checker error: {e}")
+        finally:
+            close_old_connections()  # ✅ always release after check
 
         time.sleep(60)
-
-
-def _run_command(command: list, user_id: int, name: str):
-    try:
-        result = subprocess.run(command, capture_output=True, text=True)
-        if result.returncode == 0:
-            logger.info(f"✅ [user={user_id}] {name} done")
-        else:
-            logger.error(f"❌ [user={user_id}] {name} failed:\n{result.stderr}")
-    except Exception as e:
-        logger.error(f"❌ [user={user_id}] {name} exception: {e}")
 
 
 def _user_pipeline_loop(user_id: int):
@@ -93,6 +75,7 @@ def _user_pipeline_loop(user_id: int):
         while True:
             logger.info(f"⚡ [user={user_id}] Running pipeline...")
 
+            # ✅ Use subprocess — each command is isolated, no shared DB connections
             _run_command(['python', 'manage.py', 'crawl_news', f'--user_id={user_id}'], user_id, 'Crawl')
             _run_command(['python', 'manage.py', 'summarize', f'--user_id={user_id}'], user_id, 'Summarize')
             _run_command(['python', 'manage.py', 'classify_articles', f'--user_id={user_id}'], user_id, 'Classify')
@@ -106,3 +89,15 @@ def _user_pipeline_loop(user_id: int):
         with _lock:
             _running_users.discard(user_id)
         logger.warning(f"⚠️ [user={user_id}] Pipeline thread stopped")
+
+
+def _run_command(command: list, user_id: int, name: str):
+    try:
+        # ✅ subprocess.run waits for completion — sequential, no parallel DB connections
+        result = subprocess.run(command, capture_output=True, text=True)
+        if result.returncode == 0:
+            logger.info(f"✅ [user={user_id}] {name} done")
+        else:
+            logger.error(f"❌ [user={user_id}] {name} failed:\n{result.stderr}")
+    except Exception as e:
+        logger.error(f"❌ [user={user_id}] {name} exception: {e}")
