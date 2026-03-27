@@ -31,7 +31,7 @@ class Command(BaseCommand):
 
         start = datetime.datetime.now()
 
-        topics = Topic.objects.filter(owner=user)
+        topics = Topic.objects.filter(owner__is_staff=True)
         topic_names = list(topics.values_list("name", flat=True))
         print(f"User topics: {topic_names}")
 
