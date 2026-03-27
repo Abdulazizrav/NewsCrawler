@@ -9,35 +9,21 @@ class AppsConfig(AppConfig):
     def ready(self):
         import apps.signals  # noqa
 
-        # Skip during migrations and management commands
-        if any(cmd in os.sys.argv for cmd in ['migrate', 'makemigrations', 'collectstatic', 'shell']):
+        if any(cmd in os.sys.argv for cmd in ['migrate', 'makemigrations', 'collectstatic', 'shell', 'check']):
             return
 
-        from django.db import close_old_connections
-        try:
-            close_old_connections()
-            from apps.scheduler_manager import start_scheduled_send_checker
-            start_scheduled_send_checker()
-            self._start_pipelines()
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f"Startup error: {e}")
+        # ✅ Never touch DB in ready() — do everything in a delayed background thread
+        import threading
+        import time
 
-    def _start_pipelines(self):
-        try:
-            from django.contrib.auth import get_user_model
-            from apps.scheduler_manager import start_user_pipeline
-            from apps.permissions import is_superadmin
-            from django.db import close_old_connections
+        def delayed_start():
+            time.sleep(15)
+            try:
+                from apps.scheduler_manager import start_scheduled_send_checker, start_all_pipelines
+                start_scheduled_send_checker()
+                start_all_pipelines()
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Startup error: {e}")
 
-            close_old_connections()
-            User = get_user_model()
-            users = User.objects.filter(is_active=True)
-            for user in users:
-                if not is_superadmin(user):
-                    start_user_pipeline(user.id)
-                    import logging
-                    logging.getLogger(__name__).info(f"✅ Pipeline started for user {user.id}")
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f"Could not start pipelines: {e}")
+        threading.Thread(target=delayed_start, daemon=True, name="startup-delay").start()

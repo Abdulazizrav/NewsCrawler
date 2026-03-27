@@ -2,13 +2,44 @@ import threading
 import time
 import logging
 import subprocess
-from django.db import close_old_connections
 
 logger = logging.getLogger(__name__)
 
 _running_users = set()
 _lock = threading.Lock()
 _scheduler_started = False
+
+
+def start_all_pipelines():
+    thread = threading.Thread(
+        target=_bootstrap_pipelines,
+        daemon=True,
+        name="pipeline-bootstrap"
+    )
+    thread.start()
+
+
+def _bootstrap_pipelines():
+    try:
+        from django.db import close_old_connections
+        close_old_connections()
+        from django.contrib.auth import get_user_model
+        from apps.permissions import is_superadmin
+        User = get_user_model()
+        users = list(User.objects.filter(is_active=True))
+        close_old_connections()
+        for user in users:
+            if not is_superadmin(user):
+                start_user_pipeline(user.id)
+                logger.info(f"✅ Pipeline started for user {user.id}")
+    except Exception as e:
+        logger.warning(f"Could not bootstrap pipelines: {e}")
+    finally:
+        try:
+            from django.db import close_old_connections
+            close_old_connections()
+        except Exception:
+            pass
 
 
 def start_user_pipeline(user_id: int):
@@ -47,13 +78,15 @@ def start_scheduled_send_checker():
 
 
 def _scheduled_send_loop():
+    time.sleep(15)  # wait for startup
     while True:
         try:
-            close_old_connections()  # ✅ reuse connections
+            from django.db import close_old_connections
+            close_old_connections()
             from apps.models.scheduled_send import ScheduledSend
             from django.utils import timezone
             now = timezone.now()
-            pending = ScheduledSend.objects.filter(is_sent=False, scheduled_time__lte=now)
+            pending = list(ScheduledSend.objects.filter(is_sent=False, scheduled_time__lte=now))
             for scheduled in pending:
                 logger.info(f"⏰ Firing scheduled send id={scheduled.id} for user={scheduled.user_id}")
                 subprocess.Popen([
@@ -67,24 +100,27 @@ def _scheduled_send_loop():
         except Exception as e:
             logger.error(f"❌ Scheduled send checker error: {e}")
         finally:
-            close_old_connections()  # ✅ always release after check
+            try:
+                from django.db import close_old_connections
+                close_old_connections()
+            except Exception:
+                pass
 
-        time.sleep(60)
+        time.sleep(300)  # check every 5 minutes
 
 
 def _user_pipeline_loop(user_id: int):
     try:
         while True:
             logger.info(f"⚡ [user={user_id}] Running pipeline...")
-
-            # ✅ Use subprocess — each command is isolated, no shared DB connections
             _run_command(['python', 'manage.py', 'crawl_news', f'--user_id={user_id}'], user_id, 'Crawl')
+            time.sleep(5)
             _run_command(['python', 'manage.py', 'summarize', f'--user_id={user_id}'], user_id, 'Summarize')
+            time.sleep(5)
             _run_command(['python', 'manage.py', 'classify_articles', f'--user_id={user_id}'], user_id, 'Classify')
-
+            time.sleep(5)
             logger.info(f"🏁 [user={user_id}] Pipeline done. Sleeping 1 hour...")
             time.sleep(3600)
-
     except Exception as e:
         logger.error(f"💥 [user={user_id}] Pipeline thread crashed: {e}")
     finally:
@@ -95,7 +131,6 @@ def _user_pipeline_loop(user_id: int):
 
 def _run_command(command: list, user_id: int, name: str):
     try:
-        # ✅ subprocess.run waits for completion — sequential, no parallel DB connections
         result = subprocess.run(command, capture_output=True, text=True)
         if result.returncode == 0:
             logger.info(f"✅ [user={user_id}] {name} done")
