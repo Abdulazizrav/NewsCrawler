@@ -9,28 +9,19 @@ class AppsConfig(AppConfig):
     def ready(self):
         import apps.signals  # noqa
 
-        # ✅ Only run in ONE worker process, not all gunicorn workers
-        if not os.environ.get('DYNO') and not os.environ.get('RUN_MAIN'):
-            return
-
-        # ✅ Use a lock file to ensure only ONE worker starts the scheduler
-        import tempfile
-        lock_file = os.path.join(tempfile.gettempdir(), 'newscrawler_scheduler.lock')
-        try:
-            # Try to create lock file exclusively
-            fd = os.open(lock_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            os.write(fd, str(os.getpid()).encode())
-            os.close(fd)
-        except FileExistsError:
-            # Another worker already started the scheduler
+        # Skip during migrations and management commands
+        if any(cmd in os.sys.argv for cmd in ['migrate', 'makemigrations', 'collectstatic', 'shell']):
             return
 
         from django.db import close_old_connections
-        close_old_connections()
-
-        from apps.scheduler_manager import start_scheduled_send_checker
-        start_scheduled_send_checker()
-        self._start_pipelines()
+        try:
+            close_old_connections()
+            from apps.scheduler_manager import start_scheduled_send_checker
+            start_scheduled_send_checker()
+            self._start_pipelines()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Startup error: {e}")
 
     def _start_pipelines(self):
         try:
@@ -45,6 +36,8 @@ class AppsConfig(AppConfig):
             for user in users:
                 if not is_superadmin(user):
                     start_user_pipeline(user.id)
+                    import logging
+                    logging.getLogger(__name__).info(f"✅ Pipeline started for user {user.id}")
         except Exception as e:
             import logging
-            logging.getLogger(__name__).warning(f"Could not start pipelines on startup: {e}")
+            logging.getLogger(__name__).warning(f"Could not start pipelines: {e}")

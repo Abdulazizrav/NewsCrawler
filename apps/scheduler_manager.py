@@ -32,16 +32,18 @@ def start_scheduled_send_checker():
     global _scheduler_started
     with _lock:
         if _scheduler_started:
+            logger.info("Scheduler already running, skipping")
             return
         _scheduler_started = True
 
+    logger.info("⏰ Starting scheduled send checker thread...")
     thread = threading.Thread(
         target=_scheduled_send_loop,
         daemon=True,
         name="scheduled-send-checker"
     )
     thread.start()
-    logger.info("⏰ Scheduled send checker started")
+    logger.info("⏰ Scheduled send checker started successfully")
 
 
 def _scheduled_send_loop():
