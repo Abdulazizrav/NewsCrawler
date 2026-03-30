@@ -2,20 +2,19 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.core.management import call_command
+import sys
+
 from django.db.models import Count, Sum, Q
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
-import threading
 import subprocess
 from django.views.decorators.http import require_POST
-from apps.models.scheduled_send import ScheduledSend
-from django.utils.dateparse import parse_datetime
+
 
 from apps.models import Article, TelegramDelivery, TelegramChannel, Summary, Classification, Topic
 from apps.models.user_profile import UserProfile
-from apps.permissions import superadmin_required, any_admin_required, is_superadmin
+from apps.permissions import superadmin_required, is_superadmin
 
 
 # ══════════════════════════════════════════════════════════
@@ -677,13 +676,14 @@ def statistics(request):
                   {'stats': stats, 'top_channels': top_channels, 'topics_stats': topics_stats})
 
 
+
 # ── Management command triggers ──────────────────────────
 
 @login_required(login_url='/login/')
 @require_POST
 def run_crawler(request):
     try:
-        subprocess.Popen(['python', 'manage.py', 'crawl_news', f'--user_id={request.user.id}'])
+        subprocess.Popen([sys.executable, 'manage.py', 'crawl_news', f'--user_id={request.user.id}'])  # ✅
         messages.success(request, 'Crawler started!')
     except Exception as e:
         messages.error(request, f'Error: {e}')
@@ -693,7 +693,7 @@ def run_crawler(request):
 @login_required(login_url='/login/')
 @require_POST
 def run_summarizer(request):
-    subprocess.Popen(['python', 'manage.py', 'summarize', f'--user_id={request.user.id}'])
+    subprocess.Popen([sys.executable, 'manage.py', 'summarize', f'--user_id={request.user.id}'])  # ✅
     messages.success(request, 'Summarizer started!')
     return redirect('dashboard:home')
 
@@ -701,7 +701,7 @@ def run_summarizer(request):
 @login_required(login_url='/login/')
 @require_POST
 def run_classifier(request):
-    subprocess.Popen(['python', 'manage.py', 'classify_articles', f'--user_id={request.user.id}'])
+    subprocess.Popen([sys.executable, 'manage.py', 'classify_articles', f'--user_id={request.user.id}'])  # ✅
     messages.success(request, 'Classifier started!')
     return redirect('dashboard:home')
 
@@ -710,7 +710,7 @@ def run_classifier(request):
 @require_POST
 def run_telegram(request):
     try:
-        subprocess.Popen(['python', 'manage.py', 'send_to_telegram', f'--user_id={request.user.id}'])
+        subprocess.Popen([sys.executable, 'manage.py', 'send_to_telegram', f'--user_id={request.user.id}'])  # ✅
         messages.success(request, 'Telegram sending started!')
     except Exception as e:
         messages.error(request, f'Error: {e}')
@@ -718,19 +718,10 @@ def run_telegram(request):
 
 
 @login_required(login_url='/login/')
-def check_payments(request):
-    if request.method == 'POST':
-        threading.Thread(target=lambda: call_command('check_channel_payments')).start()
-        messages.success(request, 'Payment check started!')
-    return redirect('dashboard:home')
-
-
-@login_required(login_url='/login/')
 @require_POST
-def summary_schedule_selected(request):
+def summary_send_selected(request):
     summary_ids = request.POST.getlist('summary_ids')
     channel_ids = request.POST.getlist('channel_ids')
-    scheduled_time_str = request.POST.get('scheduled_time')
 
     if not summary_ids:
         messages.error(request, 'No summaries selected.')
@@ -738,40 +729,24 @@ def summary_schedule_selected(request):
     if not channel_ids:
         messages.error(request, 'No channels selected.')
         return redirect('dashboard:summary_list')
-    if not scheduled_time_str:
-        messages.error(request, 'No scheduled time provided.')
-        return redirect('dashboard:summary_list')
 
-    valid_summary_ids = list(Summary.objects.filter(
-        pk__in=summary_ids, article__owner=request.user
-    ).values_list('pk', flat=True))
-
-    valid_channel_ids = list(TelegramChannel.objects.filter(
-        pk__in=channel_ids, owner=request.user, is_active=True
-    ).values_list('pk', flat=True))
+    valid_summary_ids = list(
+        Summary.objects.filter(pk__in=summary_ids, article__owner=request.user).values_list('pk', flat=True))
+    valid_channel_ids = list(
+        TelegramChannel.objects.filter(pk__in=channel_ids, owner=request.user, is_active=True).values_list('pk', flat=True))
 
     if not valid_summary_ids or not valid_channel_ids:
         messages.error(request, 'No valid summaries or channels found.')
         return redirect('dashboard:summary_list')
 
-    # Parse datetime from form (format: 2026-03-26T14:30)
-    from django.utils import timezone
-    import datetime
-    scheduled_time = timezone.make_aware(
-        datetime.datetime.fromisoformat(scheduled_time_str)
-    )
+    user_id = request.user.id
 
-    if scheduled_time <= timezone.now():
-        messages.error(request, 'Scheduled time must be in the future.')
-        return redirect('dashboard:summary_list')
+    subprocess.Popen([  # ✅
+        sys.executable, 'manage.py', 'send_to_telegram',
+        f'--user_id={user_id}',
+        f'--summary_ids={",".join(str(i) for i in valid_summary_ids)}',
+        f'--channel_ids={",".join(str(i) for i in valid_channel_ids)}',
+    ])
 
-    ScheduledSend.objects.create(
-        user=request.user,
-        summary_ids=','.join(str(i) for i in valid_summary_ids),
-        channel_ids=','.join(str(i) for i in valid_channel_ids),
-        scheduled_time=scheduled_time,
-    )
-
-    messages.success(request,
-                     f'Scheduled {len(valid_summary_ids)} summaries for {scheduled_time.strftime("%b %d, %Y at %H:%M")}!')
+    messages.success(request, f'Sending {len(valid_summary_ids)} summaries to {len(valid_channel_ids)} channels!')
     return redirect('dashboard:summary_list')

@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
+from django.db import close_old_connections
 from concurrent.futures import ThreadPoolExecutor
 from ...scripts.crawlers import (
     crawl_from_truck,
@@ -26,6 +27,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        close_old_connections()
         user_id = options['user_id']
 
         try:

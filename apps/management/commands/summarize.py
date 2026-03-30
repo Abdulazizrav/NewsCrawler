@@ -3,6 +3,7 @@ import os
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from dotenv import load_dotenv
+from django.db import close_old_connections
 
 from apps.models import Summary, Article
 from openai import OpenAI
@@ -110,6 +111,7 @@ class Command(BaseCommand):
         parser.add_argument('--user_id', type=int, required=True)
 
     def handle(self, *args, **options):
+        close_old_connections()
         user = User.objects.get(id=options["user_id"])
 
         start = datetime.datetime.now()

@@ -1,3 +1,5 @@
+import sys
+import os
 import threading
 import time
 import logging
@@ -78,7 +80,7 @@ def start_scheduled_send_checker():
 
 
 def _scheduled_send_loop():
-    time.sleep(15)  # wait for startup
+    time.sleep(15)
     while True:
         try:
             from django.db import close_old_connections
@@ -90,7 +92,7 @@ def _scheduled_send_loop():
             for scheduled in pending:
                 logger.info(f"⏰ Firing scheduled send id={scheduled.id} for user={scheduled.user_id}")
                 subprocess.Popen([
-                    'python', 'manage.py', 'send_to_telegram',
+                    sys.executable, 'manage.py', 'send_to_telegram',  # ✅
                     f'--user_id={scheduled.user_id}',
                     f'--summary_ids={scheduled.summary_ids}',
                     f'--channel_ids={scheduled.channel_ids}',
@@ -105,20 +107,19 @@ def _scheduled_send_loop():
                 close_old_connections()
             except Exception:
                 pass
-
-        time.sleep(300)  # check every 5 minutes
+        time.sleep(300)
 
 
 def _user_pipeline_loop(user_id: int):
     try:
-        time.sleep(60)  # ✅ wait before first run
+        time.sleep(60)
         while True:
             logger.info(f"⚡ [user={user_id}] Running pipeline...")
-            _run_command(['python', 'manage.py', 'crawl_news', f'--user_id={user_id}'], user_id, 'Crawl')
+            _run_command([sys.executable, 'manage.py', 'crawl_news', f'--user_id={user_id}'], user_id, 'Crawl')  # ✅
             time.sleep(10)
-            _run_command(['python', 'manage.py', 'summarize', f'--user_id={user_id}'], user_id, 'Summarize')
+            _run_command([sys.executable, 'manage.py', 'summarize', f'--user_id={user_id}'], user_id, 'Summarize')  # ✅
             time.sleep(10)
-            _run_command(['python', 'manage.py', 'classify_articles', f'--user_id={user_id}'], user_id, 'Classify')
+            _run_command([sys.executable, 'manage.py', 'classify_articles', f'--user_id={user_id}'], user_id, 'Classify')  # ✅
             time.sleep(10)
             logger.info(f"🏁 [user={user_id}] Pipeline done. Sleeping 1 hour...")
             time.sleep(3600)
@@ -132,7 +133,12 @@ def _user_pipeline_loop(user_id: int):
 
 def _run_command(command: list, user_id: int, name: str):
     try:
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # ✅ project root
+        )
         if result.returncode == 0:
             logger.info(f"✅ [user={user_id}] {name} done")
         else:

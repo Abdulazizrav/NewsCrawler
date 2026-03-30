@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 from datetime import timedelta
+from django.db import close_old_connections
 
 from aiogram import Dispatcher, Bot
 from aiogram.client.default import DefaultBotProperties
@@ -172,6 +173,7 @@ class Command(BaseCommand):
         parser.add_argument('--channel_ids', type=str, default=None)
 
     def handle(self, *args, **options):
+        close_old_connections()
         user_id  = options["user_id"]
         raw_ids  = options.get("summary_ids")
         raw_cids = options.get("channel_ids")

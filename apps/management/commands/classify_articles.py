@@ -1,5 +1,6 @@
 import os
 
+from django.db import close_old_connections
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from dotenv import load_dotenv
@@ -26,6 +27,7 @@ class Command(BaseCommand):
         parser.add_argument('--user_id', type=int, required=True)
 
     def handle(self, *args, **options):
+        close_old_connections()  # ✅ add this
         print("Classification command started!")
         user = User.objects.get(id=options["user_id"])
 
