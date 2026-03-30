@@ -4,62 +4,6 @@
 {% block page_subtitle %}Overview of your news crawler system{% endblock %}
 
 {% block content %}
-    <!-- Quick Action Buttons -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <form method="post" action="{% url 'dashboard:run_crawler' %}" class="w-full">
-            {% csrf_token %}
-            <button type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-lg shadow-lg transition">
-                <i class="fas fa-spider text-2xl mb-2"></i>
-                <p class="font-semibold">Run Crawler</p>
-                <p class="text-xs opacity-80">Get news</p>
-            </button>
-        </form>
-
-
-        <form method="post" action="{% url 'dashboard:run_summarizer' %}" class="w-full">
-            {% csrf_token %}
-            <button type="submit"
-                    class="w-full bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-lg shadow-lg transition">
-                <i class="fas fa-robot text-2xl mb-2"></i>
-                <p class="font-semibold">Run Summarizer</p>
-                <p class="text-xs opacity-80">AI summaries</p>
-            </button>
-        </form>
-
-
-        <!-- Run Classifier -->
-        <form method="post" action="{% url 'dashboard:run_classifier' %}" class="w-full">
-            {% csrf_token %}
-            <button type="submit"
-                    class="w-full bg-green-600 hover:bg-green-700 text-white p-4 rounded-lg shadow-lg transition">
-                <i class="fas fa-filter text-2xl mb-2"></i>
-                <p class="font-semibold">Run Classifier</p>
-                <p class="text-xs opacity-80">Sort topics</p>
-            </button>
-        </form>
-
-        <form method="post" action="{% url 'dashboard:run_telegram' %}" class="w-full">
-            {% csrf_token %}
-            <button type="submit"
-                    class="w-full bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg shadow-lg transition">
-                <i class="fab fa-telegram text-2xl mb-2"></i>
-                <p class="font-semibold">Send Telegram</p>
-                <p class="text-xs opacity-80">Deliver news</p>
-            </button>
-        </form>
-
-        <form method="post" action="{% url 'dashboard:check_payments' %}" class="w-full">
-            {% csrf_token %}
-            <button type="submit"
-                    class="w-full bg-yellow-600 hover:bg-yellow-700 text-white p-4 rounded-lg shadow-lg transition">
-                <i class="fas fa-money-bill-wave text-2xl mb-2"></i>
-                <p class="font-semibold">Check Payments</p>
-                <p class="text-xs opacity-80">Verify balances</p>
-            </button>
-        </form>
-    </div>
-
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <!-- Articles Card -->
