@@ -3,17 +3,20 @@ from django.contrib.auth.models import User
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 import sys
+import datetime
+import threading
+import subprocess
 
+from django.core.management import call_command
 from django.db.models import Count, Sum, Q
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
-import subprocess
 from django.views.decorators.http import require_POST
-
 
 from apps.models import Article, TelegramDelivery, TelegramChannel, Summary, Classification, Topic
 from apps.models.user_profile import UserProfile
+from apps.models.scheduled_send import ScheduledSend
 from apps.permissions import superadmin_required, is_superadmin
 
 
@@ -85,7 +88,6 @@ def channel_admin_home(request):
 
 @superadmin_required
 def superadmin_home(request):
-    """Superadmin overview: all users, revenue, stats."""
     today = timezone.now().date()
     week_ago = today - timedelta(days=7)
 
@@ -98,16 +100,13 @@ def superadmin_home(request):
 
     try:
         total_revenue = all_deliveries.aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')
-        revenue_today = all_deliveries.filter(sent_date__date=today).aggregate(t=Sum('cost_charged'))['t'] or Decimal(
-            '0.00')
-        revenue_week = all_deliveries.filter(sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))[
-                           't'] or Decimal('0.00')
+        revenue_today = all_deliveries.filter(sent_date__date=today).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')
+        revenue_week = all_deliveries.filter(sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')
         messages_today = all_deliveries.filter(sent_date__date=today).count()
     except Exception:
         total_revenue = revenue_today = revenue_week = Decimal('0.00')
         messages_today = 0
 
-    # Per-user billing summary
     user_billing = []
     for profile in channel_admins:
         u = profile.user
@@ -140,7 +139,6 @@ def superadmin_home(request):
 
 @superadmin_required
 def superadmin_users(request):
-    """List and manage channel admins."""
     users = UserProfile.objects.select_related('user', 'created_by').order_by('-created_at')
     context = {'users': users}
     return render(request, 'superadmin/users.html', context)
@@ -149,7 +147,6 @@ def superadmin_users(request):
 @superadmin_required
 @require_POST
 def superadmin_user_create(request):
-    """Create a new channel admin account."""
     username = request.POST.get('username', '').strip()
     password = request.POST.get('password', '').strip()
     email = request.POST.get('email', '').strip()
@@ -182,7 +179,6 @@ def superadmin_user_create(request):
 @superadmin_required
 @require_POST
 def superadmin_user_toggle(request, pk):
-    """Activate / deactivate a channel admin."""
     profile = get_object_or_404(UserProfile, pk=pk)
     profile.is_active = not profile.is_active
     profile.save()
@@ -196,17 +192,15 @@ def superadmin_user_toggle(request, pk):
 @superadmin_required
 @require_POST
 def superadmin_user_delete(request, pk):
-    """Delete a channel admin and all their data."""
     profile = get_object_or_404(UserProfile, pk=pk)
     username = profile.user.username
-    profile.user.delete()  # cascades to profile, articles, channels, etc.
+    profile.user.delete()
     messages.success(request, f'User "{username}" and all their data deleted.')
     return redirect('dashboard:superadmin_users')
 
 
 @superadmin_required
 def superadmin_user_detail(request, pk):
-    """View full stats for a specific channel admin."""
     profile = get_object_or_404(UserProfile, pk=pk)
     u = profile.user
     today = timezone.now().date()
@@ -218,10 +212,8 @@ def superadmin_user_detail(request, pk):
 
     try:
         total_spent = deliveries.filter(status='sent').aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')
-        spent_today = deliveries.filter(status='sent', sent_date__date=today).aggregate(t=Sum('cost_charged'))[
-                          't'] or Decimal('0.00')
-        spent_week = deliveries.filter(status='sent', sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))[
-                         't'] or Decimal('0.00')
+        spent_today = deliveries.filter(status='sent', sent_date__date=today).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')
+        spent_week = deliveries.filter(status='sent', sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')
         total_balance = channels.aggregate(t=Sum('balance'))['t'] or Decimal('0.00')
     except Exception:
         total_spent = spent_today = spent_week = total_balance = Decimal('0.00')
@@ -243,7 +235,6 @@ def superadmin_user_detail(request, pk):
 
 @superadmin_required
 def superadmin_billing(request):
-    """Full billing page across all users."""
     today = timezone.now().date()
     week_ago = today - timedelta(days=7)
     month_ago = today - timedelta(days=30)
@@ -259,10 +250,8 @@ def superadmin_billing(request):
                 'profile': profile,
                 'total': d.aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
                 'today': d.filter(sent_date__date=today).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
-                'week': d.filter(sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal(
-                    '0.00'),
-                'month': d.filter(sent_date__date__gte=month_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal(
-                    '0.00'),
+                'week': d.filter(sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
+                'month': d.filter(sent_date__date__gte=month_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
                 'msg_count': d.count(),
                 'balance': TelegramChannel.objects.filter(owner=u).aggregate(t=Sum('balance'))['t'] or Decimal('0.00'),
             })
@@ -281,7 +270,6 @@ def superadmin_billing(request):
 
 @superadmin_required
 def superadmin_statistics(request):
-    """Platform-wide statistics."""
     today = timezone.now().date()
     week_ago = today - timedelta(days=7)
     month_ago = today - timedelta(days=30)
@@ -292,10 +280,8 @@ def superadmin_statistics(request):
         stats = {
             'revenue': {
                 'today': all_d.filter(sent_date__date=today).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
-                'week': all_d.filter(sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal(
-                    '0.00'),
-                'month': all_d.filter(sent_date__date__gte=month_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal(
-                    '0.00'),
+                'week': all_d.filter(sent_date__date__gte=week_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
+                'month': all_d.filter(sent_date__date__gte=month_ago).aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
                 'total': all_d.aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
             },
             'messages': {
@@ -327,7 +313,7 @@ def superadmin_statistics(request):
 
 
 # ══════════════════════════════════════════════════════════
-#  CHANNEL ADMIN VIEWS (unchanged logic, kept clean)
+#  CHANNEL ADMIN VIEWS
 # ══════════════════════════════════════════════════════════
 
 @login_required(login_url='/login/')
@@ -393,8 +379,7 @@ def summary_list(request):
     summaries = Summary.objects.filter(article__owner=request.user).select_related('article').order_by('-created_date')
     from django.core.paginator import Paginator
     page_obj = Paginator(summaries, 30).get_page(request.GET.get('page'))
-    user_channels = TelegramChannel.objects.filter(owner=request.user, is_active=True).select_related('topic').order_by(
-        'name')
+    user_channels = TelegramChannel.objects.filter(owner=request.user, is_active=True).select_related('topic').order_by('name')
     return render(request, 'summaries.html', {'page_obj': page_obj, 'user_channels': user_channels})
 
 
@@ -432,8 +417,7 @@ def summary_send_selected(request):
     valid_summary_ids = list(
         Summary.objects.filter(pk__in=summary_ids, article__owner=request.user).values_list('pk', flat=True))
     valid_channel_ids = list(
-        TelegramChannel.objects.filter(pk__in=channel_ids, owner=request.user, is_active=True).values_list('pk',
-                                                                                                           flat=True))
+        TelegramChannel.objects.filter(pk__in=channel_ids, owner=request.user, is_active=True).values_list('pk', flat=True))
 
     if not valid_summary_ids or not valid_channel_ids:
         messages.error(request, 'No valid summaries or channels found.')
@@ -442,7 +426,7 @@ def summary_send_selected(request):
     user_id = request.user.id
 
     subprocess.Popen([
-        'python', 'manage.py', 'send_to_telegram',
+        sys.executable, 'manage.py', 'send_to_telegram',  # ✅
         f'--user_id={user_id}',
         f'--summary_ids={",".join(str(i) for i in valid_summary_ids)}',
         f'--channel_ids={",".join(str(i) for i in valid_channel_ids)}',
@@ -453,17 +437,63 @@ def summary_send_selected(request):
 
 
 @login_required(login_url='/login/')
+@require_POST
+def summary_schedule_selected(request):  # ✅ ADDED BACK
+    summary_ids = request.POST.getlist('summary_ids')
+    channel_ids = request.POST.getlist('channel_ids')
+    scheduled_time_str = request.POST.get('scheduled_time')
+
+    if not summary_ids:
+        messages.error(request, 'No summaries selected.')
+        return redirect('dashboard:summary_list')
+    if not channel_ids:
+        messages.error(request, 'No channels selected.')
+        return redirect('dashboard:summary_list')
+    if not scheduled_time_str:
+        messages.error(request, 'No scheduled time provided.')
+        return redirect('dashboard:summary_list')
+
+    valid_summary_ids = list(Summary.objects.filter(
+        pk__in=summary_ids, article__owner=request.user
+    ).values_list('pk', flat=True))
+
+    valid_channel_ids = list(TelegramChannel.objects.filter(
+        pk__in=channel_ids, owner=request.user, is_active=True
+    ).values_list('pk', flat=True))
+
+    if not valid_summary_ids or not valid_channel_ids:
+        messages.error(request, 'No valid summaries or channels found.')
+        return redirect('dashboard:summary_list')
+
+    scheduled_time = timezone.make_aware(
+        datetime.datetime.fromisoformat(scheduled_time_str)
+    )
+
+    if scheduled_time <= timezone.now():
+        messages.error(request, 'Scheduled time must be in the future.')
+        return redirect('dashboard:summary_list')
+
+    ScheduledSend.objects.create(
+        user=request.user,
+        summary_ids=','.join(str(i) for i in valid_summary_ids),
+        channel_ids=','.join(str(i) for i in valid_channel_ids),
+        scheduled_time=scheduled_time,
+    )
+
+    messages.success(request, f'Scheduled {len(valid_summary_ids)} summaries for {scheduled_time.strftime("%b %d, %Y at %H:%M")}!')
+    return redirect('dashboard:summary_list')
+
+
+@login_required(login_url='/login/')
 def classification_list(request):
-    classifications = Classification.objects.filter(article__owner=request.user).select_related('article',
-                                                                                                'topic').order_by('-id')
+    classifications = Classification.objects.filter(article__owner=request.user).select_related('article', 'topic').order_by('-id')
     topic_filter = request.GET.get('topic')
     if topic_filter:
         classifications = classifications.filter(topic_id=topic_filter)
     from django.core.paginator import Paginator
     page_obj = Paginator(classifications, 30).get_page(request.GET.get('page'))
-    topics = Topic.objects.all().order_by('name')  # all superadmin topics
-    return render(request, 'classifications.html',
-                  {'page_obj': page_obj, 'topics': topics, 'current_topic': topic_filter})
+    topics = Topic.objects.all().order_by('name')
+    return render(request, 'classifications.html', {'page_obj': page_obj, 'topics': topics, 'current_topic': topic_filter})
 
 
 @login_required(login_url='/login/')
@@ -480,7 +510,6 @@ def topic_list(request):
             topic.channel_count = TelegramChannel.objects.filter(topic=topic).count()
             topic.keyword_list = [k.strip() for k in topic.keywords.split(',')] if topic.keywords else []
     else:
-        # Channel admin sees only topics linked to their own channels
         topic_ids = TelegramChannel.objects.filter(owner=request.user).values_list('topic_id', flat=True).distinct()
         topics = list(Topic.objects.filter(pk__in=topic_ids))
         for topic in topics:
@@ -549,7 +578,7 @@ def channel_add(request):
             owner=request.user,
             name=request.POST.get('name'),
             channel_id=request.POST.get('channel_id'),
-            topic=topic,  # use original topic directly
+            topic=topic,
             price_per_message=Decimal(request.POST.get('price_per_message')),
             balance=Decimal(request.POST.get('balance')),
             is_active=True,
@@ -560,15 +589,13 @@ def channel_add(request):
 
     topics = Topic.objects.filter(owner__is_staff=True).order_by('name')
     preselected_topic = request.GET.get('topic', '')
-    return render(request, 'channel_form.html',
-                  {'topics': topics, 'action': 'Add', 'preselected_topic': preselected_topic})
+    return render(request, 'channel_form.html', {'topics': topics, 'action': 'Add', 'preselected_topic': preselected_topic})
 
 
 @login_required(login_url='/login/')
 def channel_edit(request, pk):
     channel = get_object_or_404(TelegramChannel, pk=pk, owner=request.user)
     if request.method == 'POST':
-        # Topic can belong to anyone (superadmin creates them)
         topic = get_object_or_404(Topic, pk=request.POST.get('topic'))
         channel.name = request.POST.get('name')
         channel.channel_id = request.POST.get('channel_id')
@@ -577,7 +604,6 @@ def channel_edit(request, pk):
         channel.save()
         messages.success(request, f'Channel "{channel.name}" updated!')
         return redirect('dashboard:channel_list')
-    # Show ALL topics created by superadmin
     topics = Topic.objects.all().order_by('name')
     return render(request, 'channel_form.html', {'channel': channel, 'topics': topics, 'action': 'Edit'})
 
@@ -625,8 +651,7 @@ def delivery_list(request):
     from django.core.paginator import Paginator
     page_obj = Paginator(deliveries, 50).get_page(request.GET.get('page'))
     channels = TelegramChannel.objects.filter(owner=request.user)
-    return render(request, 'deliveries.html',
-                  {'page_obj': page_obj, 'channels': channels, 'current_channel': channel_id, 'current_status': status})
+    return render(request, 'deliveries.html', {'page_obj': page_obj, 'channels': channels, 'current_channel': channel_id, 'current_status': status})
 
 
 @login_required(login_url='/login/')
@@ -642,39 +667,40 @@ def statistics(request):
 
     try:
         stats = {
-            'articles': {'today': user_articles.filter(published_date__date=today).count(),
-                         'week': user_articles.filter(published_date__date__gte=week_ago).count(),
-                         'month': user_articles.filter(published_date__date__gte=month_ago).count(),
-                         'total': user_articles.count()},
-            'deliveries': {'today': user_deliveries.filter(sent_date__date=today, status='sent').count(),
-                           'week': user_deliveries.filter(sent_date__date__gte=week_ago, status='sent').count(),
-                           'month': user_deliveries.filter(sent_date__date__gte=month_ago, status='sent').count(),
-                           'total': user_deliveries.filter(status='sent').count()},
+            'articles': {
+                'today': user_articles.filter(published_date__date=today).count(),
+                'week': user_articles.filter(published_date__date__gte=week_ago).count(),
+                'month': user_articles.filter(published_date__date__gte=month_ago).count(),
+                'total': user_articles.count()
+            },
+            'deliveries': {
+                'today': user_deliveries.filter(sent_date__date=today, status='sent').count(),
+                'week': user_deliveries.filter(sent_date__date__gte=week_ago, status='sent').count(),
+                'month': user_deliveries.filter(sent_date__date__gte=month_ago, status='sent').count(),
+                'total': user_deliveries.filter(status='sent').count()
+            },
             'revenue': {
-                'today': user_deliveries.filter(sent_date__date=today, status='sent').aggregate(t=Sum('cost_charged'))[
-                             't'] or Decimal('0.00'), 'week':
-                    user_deliveries.filter(sent_date__date__gte=week_ago, status='sent').aggregate(
-                        t=Sum('cost_charged'))['t'] or Decimal('0.00'), 'month':
-                    user_deliveries.filter(sent_date__date__gte=month_ago, status='sent').aggregate(
-                        t=Sum('cost_charged'))['t'] or Decimal('0.00'),
-                'total': user_deliveries.filter(status='sent').aggregate(t=Sum('cost_charged'))['t'] or Decimal(
-                    '0.00')},
+                'today': user_deliveries.filter(sent_date__date=today, status='sent').aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
+                'week': user_deliveries.filter(sent_date__date__gte=week_ago, status='sent').aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
+                'month': user_deliveries.filter(sent_date__date__gte=month_ago, status='sent').aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00'),
+                'total': user_deliveries.filter(status='sent').aggregate(t=Sum('cost_charged'))['t'] or Decimal('0.00')
+            },
         }
     except Exception:
-        stats = {'articles': {'today': 0, 'week': 0, 'month': 0, 'total': user_articles.count()},
-                 'deliveries': {'today': 0, 'week': 0, 'month': 0, 'total': 0},
-                 'revenue': {'today': Decimal('0.00'), 'week': Decimal('0.00'), 'month': Decimal('0.00'),
-                             'total': Decimal('0.00')}}
+        stats = {
+            'articles': {'today': 0, 'week': 0, 'month': 0, 'total': user_articles.count()},
+            'deliveries': {'today': 0, 'week': 0, 'month': 0, 'total': 0},
+            'revenue': {'today': Decimal('0.00'), 'week': Decimal('0.00'), 'month': Decimal('0.00'), 'total': Decimal('0.00')}
+        }
 
     top_channels = user_channels.annotate(
-        message_count=Count('telegram_deliveries', filter=Q(telegram_deliveries__status='sent'))).order_by(
-        '-message_count')[:10]
-    topics_stats = user_topics.annotate(article_count=Count('topic_classifications', filter=Q(
-        topic_classifications__article__owner=request.user))).order_by('-article_count')
+        message_count=Count('telegram_deliveries', filter=Q(telegram_deliveries__status='sent'))
+    ).order_by('-message_count')[:10]
+    topics_stats = user_topics.annotate(
+        article_count=Count('topic_classifications', filter=Q(topic_classifications__article__owner=request.user))
+    ).order_by('-article_count')
 
-    return render(request, 'statistics.html',
-                  {'stats': stats, 'top_channels': top_channels, 'topics_stats': topics_stats})
-
+    return render(request, 'statistics.html', {'stats': stats, 'top_channels': top_channels, 'topics_stats': topics_stats})
 
 
 # ── Management command triggers ──────────────────────────
@@ -683,7 +709,7 @@ def statistics(request):
 @require_POST
 def run_crawler(request):
     try:
-        subprocess.Popen([sys.executable, 'manage.py', 'crawl_news', f'--user_id={request.user.id}'])  # ✅
+        subprocess.Popen([sys.executable, 'manage.py', 'crawl_news', f'--user_id={request.user.id}'])
         messages.success(request, 'Crawler started!')
     except Exception as e:
         messages.error(request, f'Error: {e}')
@@ -693,7 +719,7 @@ def run_crawler(request):
 @login_required(login_url='/login/')
 @require_POST
 def run_summarizer(request):
-    subprocess.Popen([sys.executable, 'manage.py', 'summarize', f'--user_id={request.user.id}'])  # ✅
+    subprocess.Popen([sys.executable, 'manage.py', 'summarize', f'--user_id={request.user.id}'])
     messages.success(request, 'Summarizer started!')
     return redirect('dashboard:home')
 
@@ -701,7 +727,7 @@ def run_summarizer(request):
 @login_required(login_url='/login/')
 @require_POST
 def run_classifier(request):
-    subprocess.Popen([sys.executable, 'manage.py', 'classify_articles', f'--user_id={request.user.id}'])  # ✅
+    subprocess.Popen([sys.executable, 'manage.py', 'classify_articles', f'--user_id={request.user.id}'])
     messages.success(request, 'Classifier started!')
     return redirect('dashboard:home')
 
@@ -710,7 +736,7 @@ def run_classifier(request):
 @require_POST
 def run_telegram(request):
     try:
-        subprocess.Popen([sys.executable, 'manage.py', 'send_to_telegram', f'--user_id={request.user.id}'])  # ✅
+        subprocess.Popen([sys.executable, 'manage.py', 'send_to_telegram', f'--user_id={request.user.id}'])
         messages.success(request, 'Telegram sending started!')
     except Exception as e:
         messages.error(request, f'Error: {e}')
@@ -718,35 +744,8 @@ def run_telegram(request):
 
 
 @login_required(login_url='/login/')
-@require_POST
-def summary_schedule_selected(request):
-    summary_ids = request.POST.getlist('summary_ids')
-    channel_ids = request.POST.getlist('channel_ids')
-
-    if not summary_ids:
-        messages.error(request, 'No summaries selected.')
-        return redirect('dashboard:summary_list')
-    if not channel_ids:
-        messages.error(request, 'No channels selected.')
-        return redirect('dashboard:summary_list')
-
-    valid_summary_ids = list(
-        Summary.objects.filter(pk__in=summary_ids, article__owner=request.user).values_list('pk', flat=True))
-    valid_channel_ids = list(
-        TelegramChannel.objects.filter(pk__in=channel_ids, owner=request.user, is_active=True).values_list('pk', flat=True))
-
-    if not valid_summary_ids or not valid_channel_ids:
-        messages.error(request, 'No valid summaries or channels found.')
-        return redirect('dashboard:summary_list')
-
-    user_id = request.user.id
-
-    subprocess.Popen([  # ✅
-        sys.executable, 'manage.py', 'send_to_telegram',
-        f'--user_id={user_id}',
-        f'--summary_ids={",".join(str(i) for i in valid_summary_ids)}',
-        f'--channel_ids={",".join(str(i) for i in valid_channel_ids)}',
-    ])
-
-    messages.success(request, f'Sending {len(valid_summary_ids)} summaries to {len(valid_channel_ids)} channels!')
-    return redirect('dashboard:summary_list')
+def check_payments(request):  # ✅ ADDED BACK
+    if request.method == 'POST':
+        threading.Thread(target=lambda: call_command('check_channel_payments')).start()
+        messages.success(request, 'Payment check started!')
+    return redirect('dashboard:home')
