@@ -719,7 +719,7 @@ def run_telegram(request):
 
 @login_required(login_url='/login/')
 @require_POST
-def summary_send_selected(request):
+def summary_schedule_selected(request):
     summary_ids = request.POST.getlist('summary_ids')
     channel_ids = request.POST.getlist('channel_ids')
 
