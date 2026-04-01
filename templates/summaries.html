@@ -5,487 +5,519 @@
 
 {% block content %}
 
-{% if messages %}
-<div class="mb-4 space-y-2">
-    {% for message in messages %}
-    <div class="px-4 py-3 rounded-lg text-sm font-medium
+    {% if messages %}
+        <div class="mb-4 space-y-2">
+            {% for message in messages %}
+                <div class="px-4 py-3 rounded-lg text-sm font-medium
         {% if message.tags == 'success' %}bg-green-100 text-green-800 border border-green-200
         {% elif message.tags == 'error' %}bg-red-100 text-red-800 border border-red-200
         {% else %}bg-blue-100 text-blue-800 border border-blue-200{% endif %}">
-        {{ message }}
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
-
-<!-- ═══════════════════════════════════════════
-     EDIT SUMMARY MODAL
-════════════════════════════════════════════ -->
-<div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4">
-        <div class="flex items-center justify-between p-5 border-b">
-            <h2 class="text-lg font-semibold text-gray-800">Edit Summary</h2>
-            <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                    {{ message }}
+                </div>
+            {% endfor %}
         </div>
-        <form method="POST" action="" id="editForm">
-            {% csrf_token %}
-            <div class="p-5 space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Article Title</label>
-                    <input type="text" name="translated_title" id="editArticleTitle"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Summary Text</label>
-                    <textarea name="summary_text" id="editSummaryText" rows="6"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
-                </div>
-            </div>
-            <div class="flex justify-end gap-3 p-5 border-t bg-gray-50 rounded-b-xl">
-                <button type="button" onclick="closeEditModal()"
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                    Cancel
-                </button>
-                <button type="submit"
-                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                    Save Changes
+    {% endif %}
+
+    <!-- ═══════════════════════════════════════════
+         EDIT SUMMARY MODAL
+    ════════════════════════════════════════════ -->
+    <div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4">
+            <div class="flex items-center justify-between p-5 border-b">
+                <h2 class="text-lg font-semibold text-gray-800">Edit Summary</h2>
+                <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">
+                    &times;
                 </button>
             </div>
-        </form>
-    </div>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     CHANNEL PICKER MODAL (Send)
-════════════════════════════════════════════ -->
-<div id="channelModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
-        <div class="flex items-center justify-between p-5 border-b">
-            <div>
-                <h2 class="text-lg font-semibold text-gray-800">Choose Channels</h2>
-                <p class="text-sm text-gray-500 mt-0.5">
-                    Select which channels to send
-                    <span id="channelModalCount" class="font-semibold text-blue-600"></span>
-                </p>
-            </div>
-            <button onclick="closeChannelModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
-        </div>
-
-        <div class="p-5">
-            <label class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer mb-3 hover:bg-gray-100 transition-colors">
-                <input type="checkbox" id="selectAllChannels" onchange="toggleAllChannels(this)"
-                    class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                <span class="text-sm font-semibold text-gray-700">Select All Channels</span>
-            </label>
-            <div class="space-y-2 max-h-72 overflow-y-auto pr-1" id="channelList">
-                {% for channel in user_channels %}
-                <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors channel-option">
-                    <input type="checkbox" name="channel_ids" value="{{ channel.pk }}"
-                        onchange="updateChannelSelectAll()"
-                        class="channel-checkbox w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-800 truncate">{{ channel.name }}</p>
-                        <p class="text-xs text-gray-400 truncate">
-                            {{ channel.topic.name }} &nbsp;·&nbsp; Balance: ${{ channel.balance }}
-                        </p>
+            <form method="POST" action="" id="editForm">
+                {% csrf_token %}
+                <div class="p-5 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Article Title</label>
+                        <input type="text" name="translated_title" id="editArticleTitle"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    {% if not channel.is_active %}
-                    <span class="text-xs text-red-500 font-medium bg-red-50 px-2 py-0.5 rounded-full">Inactive</span>
-                    {% endif %}
-                </label>
-                {% empty %}
-                <p class="text-sm text-gray-500 text-center py-4">No active channels found.</p>
-                {% endfor %}
-            </div>
-        </div>
-
-        <div class="flex justify-end gap-3 p-5 border-t bg-gray-50 rounded-b-xl">
-            <button type="button" onclick="closeChannelModal()"
-                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                Cancel
-            </button>
-            <button type="button" onclick="submitSend()"
-                id="confirmSendBtn"
-                class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                disabled>
-                <i class="fas fa-paper-plane text-xs"></i>
-                Confirm & Send
-            </button>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Summary Text</label>
+                        <textarea name="summary_text" id="editSummaryText" rows="6"
+                                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 p-5 border-t bg-gray-50 rounded-b-xl">
+                    <button type="button" onclick="closeEditModal()"
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
-</div>
 
-<!-- ═══════════════════════════════════════════
-     SCHEDULE MODAL
-════════════════════════════════════════════ -->
-<div id="scheduleModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
-        <div class="flex items-center justify-between p-5 border-b">
-            <div>
-                <h2 class="text-lg font-semibold text-gray-800">📅 Schedule Send</h2>
-                <p class="text-sm text-gray-500 mt-0.5">
-                    Schedule <span id="scheduleModalCount" class="font-semibold text-purple-600"></span> to be sent later
-                </p>
+    <!-- ═══════════════════════════════════════════
+         CHANNEL PICKER MODAL (Send)
+    ════════════════════════════════════════════ -->
+    <div id="channelModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
+            <div class="flex items-center justify-between p-5 border-b">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-800">Choose Channels</h2>
+                    <p class="text-sm text-gray-500 mt-0.5">
+                        Select which channels to send
+                        <span id="channelModalCount" class="font-semibold text-blue-600"></span>
+                    </p>
+                </div>
+                <button onclick="closeChannelModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">
+                    &times;
+                </button>
             </div>
-            <button onclick="closeScheduleModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
-        </div>
 
-        <div class="p-5 space-y-4">
-            <!-- Channel selection -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Channels</label>
-                <label class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer mb-2 hover:bg-gray-100 transition-colors">
-                    <input type="checkbox" id="scheduleSelectAllChannels" onchange="toggleAllScheduleChannels(this)"
-                        class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+            <div class="p-5">
+                <label class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer mb-3 hover:bg-gray-100 transition-colors">
+                    <input type="checkbox" id="selectAllChannels" onchange="toggleAllChannels(this)"
+                           class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                     <span class="text-sm font-semibold text-gray-700">Select All Channels</span>
                 </label>
-                <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <div class="space-y-2 max-h-72 overflow-y-auto pr-1" id="channelList">
                     {% for channel in user_channels %}
-                    <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-purple-50 hover:border-purple-300 transition-colors">
-                        <input type="checkbox" value="{{ channel.pk }}"
-                            onchange="updateScheduleChannelSelectAll()"
-                            class="schedule-channel-checkbox w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-800 truncate">{{ channel.name }}</p>
-                            <p class="text-xs text-gray-400 truncate">
-                                {{ channel.topic.name }} &nbsp;·&nbsp; Balance: ${{ channel.balance }}
-                            </p>
-                        </div>
-                    </label>
+                        <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors channel-option">
+                            <input type="checkbox" name="channel_ids" value="{{ channel.pk }}"
+                                   onchange="updateChannelSelectAll()"
+                                   class="channel-checkbox w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-800 truncate">{{ channel.name }}</p>
+                                <p class="text-xs text-gray-400 truncate">
+                                    {{ channel.topic.name }} &nbsp;·&nbsp; Balance: ${{ channel.balance }}
+                                </p>
+                            </div>
+                            {% if not channel.is_active %}
+                                <span class="text-xs text-red-500 font-medium bg-red-50 px-2 py-0.5 rounded-full">Inactive</span>
+                            {% endif %}
+                        </label>
                     {% empty %}
-                    <p class="text-sm text-gray-500 text-center py-4">No active channels found.</p>
+                        <p class="text-sm text-gray-500 text-center py-4">No active channels found.</p>
                     {% endfor %}
                 </div>
             </div>
 
-            <!-- Date & Time picker -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Send At</label>
-                <input type="datetime-local" id="scheduleDateTime"
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                <p class="text-xs text-gray-400 mt-1">Must be at least 1 minute in the future.</p>
+            <div class="flex justify-end gap-3 p-5 border-t bg-gray-50 rounded-b-xl">
+                <button type="button" onclick="closeChannelModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="button" onclick="submitSend()"
+                        id="confirmSendBtn"
+                        class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        disabled>
+                    <i class="fas fa-paper-plane text-xs"></i>
+                    Confirm & Send
+                </button>
             </div>
         </div>
-
-        <div class="flex justify-end gap-3 p-5 border-t bg-gray-50 rounded-b-xl">
-            <button type="button" onclick="closeScheduleModal()"
-                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                Cancel
-            </button>
-            <button type="button" onclick="submitSchedule()"
-                id="confirmScheduleBtn"
-                class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                disabled>
-                <i class="fas fa-clock text-xs"></i>
-                Confirm Schedule
-            </button>
-        </div>
     </div>
-</div>
 
-<!-- Hidden data store -->
-<div id="summaryDataStore" class="hidden">
-    {% for summary in page_obj %}
-    <div data-id="{{ summary.pk }}"
-         data-title="{{ summary.article.title|escapejs }}"
-         data-text="{{ summary.summary_text|escapejs }}"></div>
-    {% endfor %}
-</div>
+    <!-- ═══════════════════════════════════════════
+         SCHEDULE MODAL
+    ════════════════════════════════════════════ -->
+    <div id="scheduleModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
+            <div class="flex items-center justify-between p-5 border-b">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-800">📅 Schedule Send</h2>
+                    <p class="text-sm text-gray-500 mt-0.5">
+                        Schedule <span id="scheduleModalCount" class="font-semibold text-purple-600"></span> to be sent
+                        later
+                    </p>
+                </div>
+                <button onclick="closeScheduleModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">
+                    &times;
+                </button>
+            </div>
 
-<!-- Send form -->
-<form method="POST" action="{% url 'dashboard:summary_send_selected' %}" id="sendForm">
-    {% csrf_token %}
-    <div id="hiddenSummaryIds"></div>
-    <div id="hiddenChannelIds"></div>
-</form>
+            <div class="p-5 space-y-4">
+                <!-- Channel selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Channels</label>
+                    <label class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer mb-2 hover:bg-gray-100 transition-colors">
+                        <input type="checkbox" id="scheduleSelectAllChannels" onchange="toggleAllScheduleChannels(this)"
+                               class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                        <span class="text-sm font-semibold text-gray-700">Select All Channels</span>
+                    </label>
+                    <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                        {% for channel in user_channels %}
+                            <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-purple-50 hover:border-purple-300 transition-colors">
+                                <input type="checkbox" value="{{ channel.pk }}"
+                                       onchange="updateScheduleChannelSelectAll()"
+                                       class="schedule-channel-checkbox w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-800 truncate">{{ channel.name }}</p>
+                                    <p class="text-xs text-gray-400 truncate">
+                                        {{ channel.topic.name }} &nbsp;·&nbsp; Balance: ${{ channel.balance }}
+                                    </p>
+                                </div>
+                            </label>
+                        {% empty %}
+                            <p class="text-sm text-gray-500 text-center py-4">No active channels found.</p>
+                        {% endfor %}
+                    </div>
+                </div>
 
-<!-- Schedule form -->
-<form method="POST" action="{% url 'dashboard:summary_schedule_selected' %}" id="scheduleForm">
-    {% csrf_token %}
-    <div id="scheduleHiddenSummaryIds"></div>
-    <div id="scheduleHiddenChannelIds"></div>
-    <input type="hidden" name="scheduled_time" id="scheduleFormTime">
-</form>
+                <!-- Date & Time picker -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Send At</label>
+                    <input type="datetime-local" id="scheduleDateTime"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <p class="text-xs text-gray-400 mt-1">Must be at least 1 minute in the future.</p>
+                </div>
+            </div>
 
-<!-- Main content -->
-<div class="bg-white rounded-lg shadow">
-
-    <!-- Toolbar -->
-    <div class="p-4 bg-gray-50 border-b flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-4">
-            <label class="flex items-center gap-2 cursor-pointer select-none text-sm font-medium text-gray-700">
-                <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"
-                    class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
-                Select All
-            </label>
-            <span class="text-sm text-gray-500">
-                Total: <span class="font-semibold text-gray-800">{{ page_obj.paginator.count }}</span>
-                &nbsp;|&nbsp; Selected: <span id="selectedCount" class="font-semibold text-blue-600">0</span>
-            </span>
-        </div>
-
-        <!-- Action buttons -->
-        <div class="flex items-center gap-2">
-            <!-- Schedule button -->
-            <button type="button"
-                id="scheduleBtn"
-                onclick="openScheduleModal()"
-                class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-700 bg-white border border-purple-300 rounded-lg hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                disabled>
-                <i class="fas fa-clock text-xs"></i>
-                Schedule
-            </button>
-            <!-- Send button -->
-            <button type="button"
-                id="sendBtn"
-                onclick="openChannelModal()"
-                class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                disabled>
-                <i class="fas fa-paper-plane text-xs"></i>
-                Send Selected
-            </button>
+            <div class="flex justify-end gap-3 p-5 border-t bg-gray-50 rounded-b-xl">
+                <button type="button" onclick="closeScheduleModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="button" onclick="submitSchedule()"
+                        id="confirmScheduleBtn"
+                        class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        disabled>
+                    <i class="fas fa-clock text-xs"></i>
+                    Confirm Schedule
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Summary List -->
-    <div class="divide-y">
+    <!-- Hidden data store -->
+    <div id="summaryDataStore" class="hidden">
         {% for summary in page_obj %}
-        <div class="p-5 hover:bg-gray-50 transition-colors group">
-            <div class="flex items-start gap-3">
-                <div class="mt-1 flex-shrink-0">
-                    <input type="checkbox" value="{{ summary.pk }}"
-                        onchange="updateSelectedCount()"
-                        class="summary-checkbox w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-start justify-between gap-2">
-                        <a href="{% url 'dashboard:article_detail' summary.article.pk %}"
-                            class="text-base font-semibold text-blue-600 hover:text-blue-700 leading-snug">
-                            {{ summary.article.title }}
-                        </a>
-                        <button type="button"
-                            onclick="openEditModal('{{ summary.pk }}')"
-                            class="flex-shrink-0 opacity-0 group-hover:opacity-100 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-all">
-                            <i class="fas fa-pen text-xs"></i>
-                            Edit
-                        </button>
-                    </div>
-                    <p class="text-gray-700 text-sm mt-1.5 leading-relaxed">{{ summary.summary_text }}</p>
-                    <div class="flex items-center mt-2.5 text-xs text-gray-400 space-x-4">
-                        <span><i class="fas fa-globe mr-1"></i>{{ summary.article.source }}</span>
-                        <span><i class="fas fa-clock mr-1"></i>{{ summary.created_date|timesince }} ago</span>
-                    </div>
-                </div>
+            <div data-id="{{ summary.pk }}">
+                <span class="s-title">{{ summary.article.title }}</span>
+                <span class="s-text">{{ summary.summary_text }}</span>
             </div>
-        </div>
-        {% empty %}
-        <div class="p-12 text-center text-gray-400">
-            <i class="fas fa-inbox text-5xl mb-3 block opacity-40"></i>
-            <p class="text-base font-medium">No summaries yet.</p>
-            <p class="text-sm mt-1">Run the summarizer from the dashboard!</p>
-        </div>
         {% endfor %}
     </div>
 
-    <!-- Pagination -->
-    {% if page_obj.has_other_pages %}
-    <div class="p-4 bg-gray-50 border-t flex justify-between items-center">
-        <div>
-            {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}"
-                class="bg-white border px-4 py-2 rounded-lg text-sm hover:bg-gray-100 transition-colors">
-                &larr; Previous
-            </a>
-            {% endif %}
+    <!-- Send form -->
+    <form method="POST" action="{% url 'dashboard:summary_send_selected' %}" id="sendForm">
+        {% csrf_token %}
+        <div id="hiddenSummaryIds"></div>
+        <div id="hiddenChannelIds"></div>
+    </form>
+
+    <!-- Schedule form -->
+    <form method="POST" action="{% url 'dashboard:summary_schedule_selected' %}" id="scheduleForm">
+        {% csrf_token %}
+        <div id="scheduleHiddenSummaryIds"></div>
+        <div id="scheduleHiddenChannelIds"></div>
+        <input type="hidden" name="scheduled_time" id="scheduleFormTime">
+    </form>
+
+    <!-- Main content -->
+    <div class="bg-white rounded-lg shadow">
+
+        <!-- Toolbar -->
+        <div class="p-4 bg-gray-50 border-b flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-4">
+                <label class="flex items-center gap-2 cursor-pointer select-none text-sm font-medium text-gray-700">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"
+                           class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                    Select All
+                </label>
+                <span class="text-sm text-gray-500">
+                Total: <span class="font-semibold text-gray-800">{{ page_obj.paginator.count }}</span>
+                &nbsp;|&nbsp; Selected: <span id="selectedCount" class="font-semibold text-blue-600">0</span>
+            </span>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex items-center gap-2">
+                <!-- Schedule button -->
+                <button type="button"
+                        id="scheduleBtn"
+                        onclick="openScheduleModal()"
+                        class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-700 bg-white border border-purple-300 rounded-lg hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        disabled>
+                    <i class="fas fa-clock text-xs"></i>
+                    Schedule
+                </button>
+                <!-- Send button -->
+                <button type="button"
+                        id="sendBtn"
+                        onclick="openChannelModal()"
+                        class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        disabled>
+                    <i class="fas fa-paper-plane text-xs"></i>
+                    Send Selected
+                </button>
+            </div>
         </div>
-        <span class="text-sm text-gray-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-        <div>
-            {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}"
-                class="bg-white border px-4 py-2 rounded-lg text-sm hover:bg-gray-100 transition-colors">
-                Next &rarr;
-            </a>
-            {% endif %}
+
+        <!-- Summary List -->
+        <div class="divide-y">
+            {% for summary in page_obj %}
+                <div class="p-5 hover:bg-gray-50 transition-colors group">
+                    <div class="flex items-start gap-3">
+                        <div class="mt-1 flex-shrink-0">
+                            <input type="checkbox" value="{{ summary.pk }}"
+                                   onchange="updateSelectedCount()"
+                                   class="summary-checkbox w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between gap-2">
+                                <a href="{% url 'dashboard:article_detail' summary.article.pk %}"
+                                   class="text-base font-semibold text-blue-600 hover:text-blue-700 leading-snug">
+                                    {{ summary.article.title }}
+                                </a>
+                                <button type="button"
+                                        onclick="openEditModal('{{ summary.pk }}')"
+                                        class="flex-shrink-0 opacity-0 group-hover:opacity-100 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-all">
+                                    <i class="fas fa-pen text-xs"></i>
+                                    Edit
+                                </button>
+                            </div>
+                            <p class="text-gray-700 text-sm mt-1.5 leading-relaxed">{{ summary.summary_text }}</p>
+                            <div class="flex items-center mt-2.5 text-xs text-gray-400 space-x-4">
+                                <span><i class="fas fa-globe mr-1"></i>{{ summary.article.source }}</span>
+                                <span><i class="fas fa-clock mr-1"></i>{{ summary.created_date|timesince }} ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="p-12 text-center text-gray-400">
+                    <i class="fas fa-inbox text-5xl mb-3 block opacity-40"></i>
+                    <p class="text-base font-medium">No summaries yet.</p>
+                    <p class="text-sm mt-1">Run the summarizer from the dashboard!</p>
+                </div>
+            {% endfor %}
         </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+            <div class="p-4 bg-gray-50 border-t flex justify-between items-center">
+                <div>
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}"
+                           class="bg-white border px-4 py-2 rounded-lg text-sm hover:bg-gray-100 transition-colors">
+                            &larr; Previous
+                        </a>
+                    {% endif %}
+                </div>
+                <span class="text-sm text-gray-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                <div>
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}"
+                           class="bg-white border px-4 py-2 rounded-lg text-sm hover:bg-gray-100 transition-colors">
+                            Next &rarr;
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
     </div>
-    {% endif %}
-</div>
 
-<script>
-    const summaryData = {};
-    document.querySelectorAll('#summaryDataStore [data-id]').forEach(el => {
-        summaryData[el.dataset.id] = { title: el.dataset.title, text: el.dataset.text };
-    });
-    const BASE_EDIT_URL = "{% url 'dashboard:summary_edit' 0 %}";
-
-    // ── Edit Modal ───────────────────────────────────────────
-    function openEditModal(summaryId) {
-        const data = summaryData[summaryId];
-        if (!data) return;
-        document.getElementById('editArticleTitle').value = data.title;
-        document.getElementById('editSummaryText').value  = data.text;
-        document.getElementById('editForm').action = BASE_EDIT_URL.replace('/0/', '/' + summaryId + '/');
-        showModal('editModal');
-    }
-    function closeEditModal() { hideModal('editModal'); }
-
-    // ── Select All summaries ─────────────────────────────────
-    function toggleSelectAll(master) {
-        document.querySelectorAll('.summary-checkbox').forEach(cb => cb.checked = master.checked);
-        updateSelectedCount();
-    }
-
-    function updateSelectedCount() {
-        const checked = document.querySelectorAll('.summary-checkbox:checked').length;
-        const total   = document.querySelectorAll('.summary-checkbox').length;
-        document.getElementById('selectedCount').textContent = checked;
-        document.getElementById('sendBtn').disabled     = checked === 0;
-        document.getElementById('scheduleBtn').disabled = checked === 0;
-        const master = document.getElementById('selectAll');
-        master.indeterminate = checked > 0 && checked < total;
-        master.checked = checked === total && total > 0;
-    }
-
-    // ── Send Channel Modal ───────────────────────────────────
-    function openChannelModal() {
-        const count = document.querySelectorAll('.summary-checkbox:checked').length;
-        document.getElementById('channelModalCount').textContent = count + ' summar' + (count === 1 ? 'y' : 'ies');
-        document.querySelectorAll('.channel-checkbox').forEach(cb => cb.checked = false);
-        document.getElementById('selectAllChannels').checked = false;
-        document.getElementById('selectAllChannels').indeterminate = false;
-        document.getElementById('confirmSendBtn').disabled = true;
-        showModal('channelModal');
-    }
-    function closeChannelModal() { hideModal('channelModal'); }
-
-    function toggleAllChannels(master) {
-        document.querySelectorAll('.channel-checkbox').forEach(cb => cb.checked = master.checked);
-        updateChannelSelectAll();
-    }
-    function updateChannelSelectAll() {
-        const checked = document.querySelectorAll('.channel-checkbox:checked').length;
-        const total   = document.querySelectorAll('.channel-checkbox').length;
-        const master  = document.getElementById('selectAllChannels');
-        master.indeterminate = checked > 0 && checked < total;
-        master.checked = checked === total && total > 0;
-        document.getElementById('confirmSendBtn').disabled = checked === 0;
-    }
-
-    function submitSend() {
-        const summaryIds = [...document.querySelectorAll('.summary-checkbox:checked')].map(cb => cb.value);
-        const channelIds = [...document.querySelectorAll('.channel-checkbox:checked')].map(cb => cb.value);
-        if (!summaryIds.length || !channelIds.length) return;
-
-        const sContainer = document.getElementById('hiddenSummaryIds');
-        const cContainer = document.getElementById('hiddenChannelIds');
-        sContainer.innerHTML = '';
-        cContainer.innerHTML = '';
-        summaryIds.forEach(id => {
-            const input = document.createElement('input');
-            input.type = 'hidden'; input.name = 'summary_ids'; input.value = id;
-            sContainer.appendChild(input);
+    <script>
+        const summaryData = {};
+        document.querySelectorAll('#summaryDataStore [data-id]').forEach(el => {
+            summaryData[el.dataset.id] = {
+                title: el.querySelector('.s-title').textContent,
+                text: el.querySelector('.s-text').textContent
+            };
         });
-        channelIds.forEach(id => {
-            const input = document.createElement('input');
-            input.type = 'hidden'; input.name = 'channel_ids'; input.value = id;
-            cContainer.appendChild(input);
-        });
-        document.getElementById('sendForm').submit();
-    }
+        const BASE_EDIT_URL = "{% url 'dashboard:summary_edit' 0 %}";
 
-    // ── Schedule Modal ───────────────────────────────────────
-    function openScheduleModal() {
-        const count = document.querySelectorAll('.summary-checkbox:checked').length;
-        document.getElementById('scheduleModalCount').textContent = count + ' summar' + (count === 1 ? 'y' : 'ies');
+        // ── Edit Modal ───────────────────────────────────────────
+        function openEditModal(summaryId) {
+            const data = summaryData[summaryId];
+            if (!data) return;
+            document.getElementById('editArticleTitle').value = data.title;
+            document.getElementById('editSummaryText').value = data.text;
+            document.getElementById('editForm').action = BASE_EDIT_URL.replace('/0/', '/' + summaryId + '/');
+            showModal('editModal');
+        }
 
-        // Reset
-        document.querySelectorAll('.schedule-channel-checkbox').forEach(cb => cb.checked = false);
-        document.getElementById('scheduleSelectAllChannels').checked = false;
-        document.getElementById('scheduleSelectAllChannels').indeterminate = false;
-        document.getElementById('confirmScheduleBtn').disabled = true;
-
-        // Set minimum datetime to 1 minute from now
-        const now = new Date();
-        now.setMinutes(now.getMinutes() + 1);
-        document.getElementById('scheduleDateTime').min = now.toISOString().slice(0, 16);
-        document.getElementById('scheduleDateTime').value = '';
-
-        showModal('scheduleModal');
-    }
-    function closeScheduleModal() { hideModal('scheduleModal'); }
-
-    function toggleAllScheduleChannels(master) {
-        document.querySelectorAll('.schedule-channel-checkbox').forEach(cb => cb.checked = master.checked);
-        updateScheduleChannelSelectAll();
-    }
-    function updateScheduleChannelSelectAll() {
-        const checked = document.querySelectorAll('.schedule-channel-checkbox:checked').length;
-        const total   = document.querySelectorAll('.schedule-channel-checkbox').length;
-        const master  = document.getElementById('scheduleSelectAllChannels');
-        master.indeterminate = checked > 0 && checked < total;
-        master.checked = checked === total && total > 0;
-        updateConfirmScheduleBtn();
-    }
-    function updateConfirmScheduleBtn() {
-        const channels = document.querySelectorAll('.schedule-channel-checkbox:checked').length;
-        const time     = document.getElementById('scheduleDateTime').value;
-        document.getElementById('confirmScheduleBtn').disabled = channels === 0 || !time;
-    }
-
-    document.getElementById('scheduleDateTime').addEventListener('change', updateConfirmScheduleBtn);
-
-    function submitSchedule() {
-        const summaryIds = [...document.querySelectorAll('.summary-checkbox:checked')].map(cb => cb.value);
-        const channelIds = [...document.querySelectorAll('.schedule-channel-checkbox:checked')].map(cb => cb.value);
-        const time       = document.getElementById('scheduleDateTime').value;
-
-        if (!summaryIds.length || !channelIds.length || !time) return;
-
-        const sContainer = document.getElementById('scheduleHiddenSummaryIds');
-        const cContainer = document.getElementById('scheduleHiddenChannelIds');
-        sContainer.innerHTML = '';
-        cContainer.innerHTML = '';
-
-        summaryIds.forEach(id => {
-            const input = document.createElement('input');
-            input.type = 'hidden'; input.name = 'summary_ids'; input.value = id;
-            sContainer.appendChild(input);
-        });
-        channelIds.forEach(id => {
-            const input = document.createElement('input');
-            input.type = 'hidden'; input.name = 'channel_ids'; input.value = id;
-            cContainer.appendChild(input);
-        });
-
-        document.getElementById('scheduleFormTime').value = time;
-        document.getElementById('scheduleForm').submit();
-    }
-
-    // ── Modal helpers ────────────────────────────────────────
-    function showModal(id) {
-        const m = document.getElementById(id);
-        m.classList.remove('hidden');
-        m.classList.add('flex');
-    }
-    function hideModal(id) {
-        const m = document.getElementById(id);
-        m.classList.add('hidden');
-        m.classList.remove('flex');
-    }
-
-    ['editModal', 'channelModal', 'scheduleModal'].forEach(id => {
-        document.getElementById(id).addEventListener('click', function(e) {
-            if (e.target === this) hideModal(id);
-        });
-    });
-
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
+        function closeEditModal() {
             hideModal('editModal');
+        }
+
+        // ── Select All summaries ─────────────────────────────────
+        function toggleSelectAll(master) {
+            document.querySelectorAll('.summary-checkbox').forEach(cb => cb.checked = master.checked);
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const checked = document.querySelectorAll('.summary-checkbox:checked').length;
+            const total = document.querySelectorAll('.summary-checkbox').length;
+            document.getElementById('selectedCount').textContent = checked;
+            document.getElementById('sendBtn').disabled = checked === 0;
+            document.getElementById('scheduleBtn').disabled = checked === 0;
+            const master = document.getElementById('selectAll');
+            master.indeterminate = checked > 0 && checked < total;
+            master.checked = checked === total && total > 0;
+        }
+
+        // ── Send Channel Modal ───────────────────────────────────
+        function openChannelModal() {
+            const count = document.querySelectorAll('.summary-checkbox:checked').length;
+            document.getElementById('channelModalCount').textContent = count + ' summar' + (count === 1 ? 'y' : 'ies');
+            document.querySelectorAll('.channel-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('selectAllChannels').checked = false;
+            document.getElementById('selectAllChannels').indeterminate = false;
+            document.getElementById('confirmSendBtn').disabled = true;
+            showModal('channelModal');
+        }
+
+        function closeChannelModal() {
             hideModal('channelModal');
+        }
+
+        function toggleAllChannels(master) {
+            document.querySelectorAll('.channel-checkbox').forEach(cb => cb.checked = master.checked);
+            updateChannelSelectAll();
+        }
+
+        function updateChannelSelectAll() {
+            const checked = document.querySelectorAll('.channel-checkbox:checked').length;
+            const total = document.querySelectorAll('.channel-checkbox').length;
+            const master = document.getElementById('selectAllChannels');
+            master.indeterminate = checked > 0 && checked < total;
+            master.checked = checked === total && total > 0;
+            document.getElementById('confirmSendBtn').disabled = checked === 0;
+        }
+
+        function submitSend() {
+            const summaryIds = [...document.querySelectorAll('.summary-checkbox:checked')].map(cb => cb.value);
+            const channelIds = [...document.querySelectorAll('.channel-checkbox:checked')].map(cb => cb.value);
+            if (!summaryIds.length || !channelIds.length) return;
+
+            const sContainer = document.getElementById('hiddenSummaryIds');
+            const cContainer = document.getElementById('hiddenChannelIds');
+            sContainer.innerHTML = '';
+            cContainer.innerHTML = '';
+            summaryIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'summary_ids';
+                input.value = id;
+                sContainer.appendChild(input);
+            });
+            channelIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'channel_ids';
+                input.value = id;
+                cContainer.appendChild(input);
+            });
+            document.getElementById('sendForm').submit();
+        }
+
+        // ── Schedule Modal ───────────────────────────────────────
+        function openScheduleModal() {
+            const count = document.querySelectorAll('.summary-checkbox:checked').length;
+            document.getElementById('scheduleModalCount').textContent = count + ' summar' + (count === 1 ? 'y' : 'ies');
+
+            // Reset
+            document.querySelectorAll('.schedule-channel-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('scheduleSelectAllChannels').checked = false;
+            document.getElementById('scheduleSelectAllChannels').indeterminate = false;
+            document.getElementById('confirmScheduleBtn').disabled = true;
+
+            // Set minimum datetime to 1 minute from now
+            const now = new Date();
+            now.setMinutes(now.getMinutes() + 1);
+            document.getElementById('scheduleDateTime').min = now.toISOString().slice(0, 16);
+            document.getElementById('scheduleDateTime').value = '';
+
+            showModal('scheduleModal');
+        }
+
+        function closeScheduleModal() {
             hideModal('scheduleModal');
         }
-    });
-</script>
+
+        function toggleAllScheduleChannels(master) {
+            document.querySelectorAll('.schedule-channel-checkbox').forEach(cb => cb.checked = master.checked);
+            updateScheduleChannelSelectAll();
+        }
+
+        function updateScheduleChannelSelectAll() {
+            const checked = document.querySelectorAll('.schedule-channel-checkbox:checked').length;
+            const total = document.querySelectorAll('.schedule-channel-checkbox').length;
+            const master = document.getElementById('scheduleSelectAllChannels');
+            master.indeterminate = checked > 0 && checked < total;
+            master.checked = checked === total && total > 0;
+            updateConfirmScheduleBtn();
+        }
+
+        function updateConfirmScheduleBtn() {
+            const channels = document.querySelectorAll('.schedule-channel-checkbox:checked').length;
+            const time = document.getElementById('scheduleDateTime').value;
+            document.getElementById('confirmScheduleBtn').disabled = channels === 0 || !time;
+        }
+
+        document.getElementById('scheduleDateTime').addEventListener('change', updateConfirmScheduleBtn);
+
+        function submitSchedule() {
+            const summaryIds = [...document.querySelectorAll('.summary-checkbox:checked')].map(cb => cb.value);
+            const channelIds = [...document.querySelectorAll('.schedule-channel-checkbox:checked')].map(cb => cb.value);
+            const time = document.getElementById('scheduleDateTime').value;
+
+            if (!summaryIds.length || !channelIds.length || !time) return;
+
+            const sContainer = document.getElementById('scheduleHiddenSummaryIds');
+            const cContainer = document.getElementById('scheduleHiddenChannelIds');
+            sContainer.innerHTML = '';
+            cContainer.innerHTML = '';
+
+            summaryIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'summary_ids';
+                input.value = id;
+                sContainer.appendChild(input);
+            });
+            channelIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'channel_ids';
+                input.value = id;
+                cContainer.appendChild(input);
+            });
+
+            document.getElementById('scheduleFormTime').value = time;
+            document.getElementById('scheduleForm').submit();
+        }
+
+        // ── Modal helpers ────────────────────────────────────────
+        function showModal(id) {
+            const m = document.getElementById(id);
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function hideModal(id) {
+            const m = document.getElementById(id);
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        ['editModal', 'channelModal', 'scheduleModal'].forEach(id => {
+            document.getElementById(id).addEventListener('click', function (e) {
+                if (e.target === this) hideModal(id);
+            });
+        });
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                hideModal('editModal');
+                hideModal('channelModal');
+                hideModal('scheduleModal');
+            }
+        });
+    </script>
 
 {% endblock %}
