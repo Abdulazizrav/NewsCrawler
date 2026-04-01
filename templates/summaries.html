@@ -31,6 +31,7 @@
             </div>
             <form method="POST" action="" id="editForm">
                 {% csrf_token %}
+                <input type="hidden" name="page" id="editFormPage" value="{{ page_obj.number }}">  <!-- ✅ -->
                 <div class="p-5 space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Article Title</label>
@@ -297,24 +298,40 @@
 
         <!-- Pagination -->
         {% if page_obj.has_other_pages %}
-            <div class="p-4 bg-gray-50 border-t flex justify-between items-center">
-                <div>
-                    {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}"
-                           class="bg-white border px-4 py-2 rounded-lg text-sm hover:bg-gray-100 transition-colors">
-                            &larr; Previous
+            <div class="p-4 bg-gray-50 border-t flex items-center justify-center gap-1 flex-wrap">
+
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}"
+                       class="px-3 py-2 text-sm bg-white border rounded-lg hover:bg-gray-100 transition-colors">
+                        &larr;
+                    </a>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <span class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg font-medium">{{ num }}</span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a href="?page={{ num }}"
+                           class="px-3 py-2 text-sm bg-white border rounded-lg hover:bg-gray-100 transition-colors">
+                            {{ num }}
                         </a>
-                    {% endif %}
-                </div>
-                <span class="text-sm text-gray-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-                <div>
-                    {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}"
-                           class="bg-white border px-4 py-2 rounded-lg text-sm hover:bg-gray-100 transition-colors">
-                            Next &rarr;
+                    {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                        <a href="?page={{ num }}"
+                           class="px-3 py-2 text-sm bg-white border rounded-lg hover:bg-gray-100 transition-colors">
+                            {{ num }}
                         </a>
+                    {% elif num == page_obj.number|add:'-4' or num == page_obj.number|add:'4' %}
+                        <span class="px-2 py-2 text-sm text-gray-400">...</span>
                     {% endif %}
-                </div>
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}"
+                       class="px-3 py-2 text-sm bg-white border rounded-lg hover:bg-gray-100 transition-colors">
+                        &rarr;
+                    </a>
+                {% endif %}
+
             </div>
         {% endif %}
     </div>

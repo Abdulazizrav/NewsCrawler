@@ -398,7 +398,9 @@ def summary_edit(request, pk):
         summary.article.title = new_title
         summary.article.save(update_fields=['title'])
     messages.success(request, 'Summary updated successfully!')
-    return redirect('dashboard:summary_list')
+    # ✅ preserve page number
+    page = request.POST.get('page', '1')
+    return redirect(f"{request.build_absolute_uri('/summaries/')}?page={page}")
 
 
 @login_required(login_url='/login/')
