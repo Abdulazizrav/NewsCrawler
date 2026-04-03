@@ -59,8 +59,8 @@ def crawl_with_rss(owner):
                                                  is_summary=True,
                                                  url=entry['link'], source=feed.feed.title,
                                                  published_date=entry['published'])
-                image_url = extract_image(article=article, entry=entry)
-                save_image(image_url=image_url, article=article)
+                # image_url = extract_image(article=article, entry=entry)
+                # save_image(image_url=image_url, article=article)
                 Summary.objects.create(article=article, summary_text=entry['summary'])
         print(f"{feed.feed.title} dan barcha ma'lumotlar yuklandi!")
 
