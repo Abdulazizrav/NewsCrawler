@@ -68,9 +68,6 @@ def run_all_crawlers(user):
         crawl_from_guardian(user)
         crawl_from_rss_http(user)
         crawl_from_qalampir(user)
-        # crawl_from_guardian(topic, user)
-        # crawl_from_qalampir(topic, user)
-        # crawl_from_sputnik(topic, user)
 
     except Exception as e:
         print(f"Error: {e}")
