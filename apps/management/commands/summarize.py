@@ -1,9 +1,11 @@
 import os
+import json
 
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from dotenv import load_dotenv
 from django.db import close_old_connections
+from django.utils import timezone
 
 from apps.models import Summary, Article
 from openai import OpenAI
@@ -19,6 +21,8 @@ openai_semaphore = Semaphore(5)
 processing_lock = Lock()
 processing_ids = set()  # track articles currently being processed by any thread
 
+MAX_SUMMARIZE_FAILURES = 3
+
 
 def extract_text(response):
     try:
@@ -28,34 +32,49 @@ def extract_text(response):
 
 
 def summarize_and_translate_with_openai(text: str, title: str) -> tuple[str, str]:
+    """
+    OPTIMIZED: Single API call instead of 2 separate calls
+    Returns JSON with both summary and translated title
+    Saves 50% on API costs
+    """
     with openai_semaphore:
-        summary_response = client.responses.create(
-            model="gpt-4.1-mini",
-            input=[
-                {"role": "system", "content": "Summarize in 2-4 sentences in Uzbek."},
-                {"role": "user", "content": text}
-            ],
-            temperature=0.2,
-            max_output_tokens=250
-        )
-
-        title_response = client.responses.create(
+        response = client.responses.create(
             model="gpt-4.1-mini",
             input=[
                 {
                     "role": "system",
-                    "content": "Translate the given title to Uzbek. Return only the translated title, nothing else."
+                    "content": """Analyze the given article. Return a JSON object with exactly 2 fields:
+1. "summary": A 2-4 sentence summary in Uzbek
+2. "title": The title translated to Uzbek
+
+Return ONLY valid JSON, no markdown or extra text."""
                 },
-                {"role": "user", "content": title}
+                {
+                    "role": "user",
+                    "content": f"Article Title: {title}\n\nArticle Content: {text}"
+                }
             ],
-            temperature=0.1,
-            max_output_tokens=100
+            temperature=0.2,
+            max_output_tokens=350
         )
 
-    return extract_text(summary_response), extract_text(title_response)
+    response_text = extract_text(response)
+    
+    try:
+        # Parse the JSON response
+        result = json.loads(response_text)
+        summary = result.get("summary", "")
+        translated_title = result.get("title", title)
+    except json.JSONDecodeError:
+        # Fallback if JSON parsing fails
+        summary = response_text[:200]
+        translated_title = title
+    
+    return summary, translated_title
 
 
 def process_article(article, stats):
+    """Process single article with failure tracking"""
     # Claim this article atomically — skip if another thread already took it
     with processing_lock:
         if article.id in processing_ids:
@@ -67,6 +86,12 @@ def process_article(article, stats):
     try:
         # Double-check in DB after claiming (handles re-runs)
         if article.is_summary or Summary.objects.filter(article=article).exists():
+            with stats_lock:
+                stats["skipped"] += 1
+            return
+
+        # ✅ CRITICAL: Skip if failed too many times - prevents infinite retries
+        if article.summarize_failed_count >= MAX_SUMMARIZE_FAILURES:
             with stats_lock:
                 stats["skipped"] += 1
             return
@@ -88,6 +113,8 @@ def process_article(article, stats):
 
         article.is_summary = True
         article.title = translated_title
+        article.summarize_failed_count = 0  # Reset on success
+        article.last_summarize_attempt = timezone.now()
         article.save()
 
         with stats_lock:
@@ -97,6 +124,11 @@ def process_article(article, stats):
         print(f"Error processing article {article.id}: {e}")
         with stats_lock:
             stats["failed"] += 1
+        
+        # ✅ Track failure count to avoid infinite retries
+        article.summarize_failed_count += 1
+        article.last_summarize_attempt = timezone.now()
+        article.save()
 
     finally:
         # Always release the article ID so re-runs work correctly

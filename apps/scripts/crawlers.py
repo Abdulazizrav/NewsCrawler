@@ -54,13 +54,18 @@ def crawl_with_rss(owner):
     for url in rss:
         feed = feedparser.parse(url)
         for entry in feed.entries:
-            if not Article.objects.filter(owner=owner, url=entry['link']).exists():
-                article = Article.objects.create(owner=owner, title=entry['title'], content=entry['summary'],
-                                                 is_summary=True,
-                                                 url=entry['link'], source=feed.feed.title,
-                                                 published_date=entry['published'])
-                # image_url = extract_image(article=article, entry=entry)
-                # save_image(image_url=image_url, article=article)
+            article, created = Article.objects.get_or_create(
+                owner=owner,
+                url=entry['link'],
+                defaults={
+                    'title': entry['title'],
+                    'content': entry['summary'],
+                    'is_summary': True,
+                    'source': feed.feed.title,
+                    'published_date': entry['published']
+                }
+            )
+            if created:
                 Summary.objects.create(article=article, summary_text=entry['summary'])
         print(f"{feed.feed.title} dan barcha ma'lumotlar yuklandi!")
 
@@ -124,9 +129,18 @@ def crawl_from_rss_http(owner):
                         body += letter
                 content = body
 
-            if not Article.objects.filter(owner=owner, url=link).exists():
-                article = Article.objects.create(owner=owner, title=title, content=content, is_summary=False,
-                                                 url=link, source=source, published_date=published)
+            article, created = Article.objects.get_or_create(
+                owner=owner,
+                url=link,
+                defaults={
+                    'title': title,
+                    'content': content,
+                    'is_summary': False,
+                    'source': source,
+                    'published_date': published
+                }
+            )
+            if created:
                 extract_image_from_independent(article=article)
 
         print(f"{feed.feed.title} dan barcha ma'lumotlar yuklandi!")
@@ -152,31 +166,57 @@ def crawl_from_qalampir(owner):
 
     for card in cards:
         url = "https://qalampir.uz" + card.get("href")
-        if not Article.objects.filter(owner=owner, url=url).exists():
-            title = card.find("p", {"class": "news-card-content-text"}).text.strip()
-            published = card.find("span", {"class": "date"}).text
-            response = BeautifulSoup(httpx.get(url).text, "html.parser").find_all("div", {"class": "col-12"})
-            content = response[4].find("p").text.strip()
-            article = Article.objects.create(owner=owner, title=title, url=url, published_date=published,
-                                             content=content, is_summary=True, source='qalampir.uz')
+        title = card.find("p", {"class": "news-card-content-text"}).text.strip()
+        published = card.find("span", {"class": "date"}).text
+        try:
+            response_content = BeautifulSoup(httpx.get(url).text, "html.parser").find_all("div", {"class": "col-12"})
+            content = response_content[4].find("p").text.strip()
+        except (IndexError, AttributeError):
+            content = ""
+        
+        article, created = Article.objects.get_or_create(
+            owner=owner,
+            url=url,
+            defaults={
+                'title': title,
+                'published_date': published,
+                'content': content,
+                'is_summary': True,
+                'source': 'qalampir.uz'
+            }
+        )
+        if created:
             image_from_qalampir(article=article)
     print("Qalampir dan barcha ma'lumotlar yuklandi")
 
 
-def crawl_from_sputnik():
+def crawl_from_sputnik(owner):
     response = httpx.get("https://oz.sputniknews.uz/news/")
     soup = BeautifulSoup(response.text, "html.parser")
     cards = soup.find_all("div", {"class": "list__item"})
     for card in cards:
         url = "https://oz.sputniknews.uz" + card.find("a", {"class": "list__title"}).get("href")
-        if not Article.objects.filter(url=url).exists():
-            title = card.find("a", {"class": "list__title"}).text
+        title = card.find("a", {"class": "list__title"}).text
+        try:
             article_response = httpx.get(url)
             soup1 = BeautifulSoup(article_response.text, "html.parser")
             published = soup1.find("div", {"class": "article__info-date"}).text
             content = "".join(p.text for p in soup1.find_all("div", {"class": "article__text"}))
-            article = Article.objects.create(url=url, content=content, published_date=published, title=title,
-                                             source="sputniknews.uz", is_summary=False)
+        except Exception:
+            published = None
+            content = ""
+        
+        Article.objects.get_or_create(
+            owner=owner,
+            url=url,
+            defaults={
+                'content': content,
+                'published_date': published,
+                'title': title,
+                'source': "sputniknews.uz",
+                'is_summary': False
+            }
+        )
     print("Sputnik dan barcha ma'lumotlar yuklandi")
 
 
@@ -187,21 +227,22 @@ def crawl_from_guardian(owner):
 
     for link in links:
         url = 'https://www.theguardian.com' + link.get('href')
-        if not Article.objects.filter(owner=owner, url=url).exists():
-            title = link.get("aria-label")
-            response2 = httpx.get(url)
-            soup2 = BeautifulSoup(response2.text, "html.parser")
-            published_date = None
-            content = "".join(p.text for p in soup2.find_all("p", {"class": "dcr-130mj7b"}))
-            article = Article.objects.create(
-                owner=owner,
-                content=content,
-                url=url,
-                title=title,
-                published_date=published_date,
-                source="theguardian.com",
-                is_summary=False
-            )
+        title = link.get("aria-label")
+        response2 = httpx.get(url)
+        soup2 = BeautifulSoup(response2.text, "html.parser")
+        content = "".join(p.text for p in soup2.find_all("p", {"class": "dcr-130mj7b"}))
+        
+        Article.objects.get_or_create(
+            owner=owner,
+            url=url,
+            defaults={
+                'title': title,
+                'content': content,
+                'published_date': None,
+                'source': "theguardian.com",
+                'is_summary': False
+            }
+        )
     print("Guardian dan barcha ma'lumotlar yuklandi")
 
 
@@ -220,9 +261,18 @@ def crawl_from_truck(owner):
             source = feed.feed.title
             published = entry['published']
 
-            if not Article.objects.filter(url=link, owner=owner).exists():
-                article = Article.objects.create(owner=owner, title=title, content=content, is_summary=False,
-                                                 url=link, source=source, published_date=published)
+            article, created = Article.objects.get_or_create(
+                owner=owner,
+                url=link,
+                defaults={
+                    'title': title,
+                    'content': content,
+                    'is_summary': False,
+                    'source': source,
+                    'published_date': published
+                }
+            )
+            if created:
                 extract_image_from_independent(article=article)
 
     headers = {
@@ -239,7 +289,17 @@ def crawl_from_truck(owner):
         content = card.find("p").text
         published = card.find("span").text.strip()
         image_link = card.find("img")['src']
-        if not Article.objects.filter(url=link, owner=owner).exists():
-            article = Article.objects.create(owner=owner, title=title, content=content, is_summary=False,
-                                             url=link, source="freightwaves.com", published_date=published)
+        
+        article, created = Article.objects.get_or_create(
+            owner=owner,
+            url=link,
+            defaults={
+                'title': title,
+                'content': content,
+                'is_summary': False,
+                'source': "freightwaves.com",
+                'published_date': published
+            }
+        )
+        if created:
             save_image(article=article, image_url=image_link)

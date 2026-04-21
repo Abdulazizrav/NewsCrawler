@@ -8,8 +8,7 @@ from ...scripts.crawlers import (
     crawl_from_rss_http,
     crawl_from_qalampir,
     crawl_from_guardian,
-
-
+    crawl_from_sputnik,
 )
 
 import datetime
@@ -68,6 +67,7 @@ def run_all_crawlers(user):
         crawl_from_guardian(user)
         crawl_from_rss_http(user)
         crawl_from_qalampir(user)
+        crawl_from_sputnik(user)
 
     except Exception as e:
         print(f"Error: {e}")

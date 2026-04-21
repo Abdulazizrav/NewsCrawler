@@ -14,6 +14,8 @@ class Article(Model):
     source = CharField(max_length=255, null=True, blank=True)
     published_date = CharField(max_length=255, null=True, blank=True)
     is_summary = BooleanField(default=False)
+    summarize_failed_count = models.IntegerField(default=0)
+    last_summarize_attempt = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.title} {self.id}"
