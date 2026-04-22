@@ -30,7 +30,7 @@
     <h3 class="text-lg font-semibold text-green-900 mb-3">
         <i class="fas fa-check-circle mr-2"></i>AI Summary
     </h3>
-    <p class="text-gray-700">{{ summary.summary_text }}</p>
+    <p class="text-gray-700" style="white-space: pre-wrap;">{{ summary.summary_text }}</p>
     <p class="text-sm text-gray-500 mt-3">Generated: {{ summary.created_date|date:"M d, Y H:i" }}</p>
 </div>
 {% else %}

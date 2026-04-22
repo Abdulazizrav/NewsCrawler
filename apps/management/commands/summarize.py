@@ -44,10 +44,15 @@ def summarize_and_translate_with_openai(text: str, title: str) -> tuple[str, str
                 {
                     "role": "system",
                     "content": """Analyze the given article. Return a JSON object with exactly 2 fields:
-1. "summary": A 2-4 sentence summary in Uzbek
-2. "title": The title translated to Uzbek
+1. "summary": A visually beautiful, well-structured summary in Uzbek (200-400 chars).
+   - Use emojis for readability (e.g. 📌 for summary, 🔹 for points).
+   - Use HTML bold tags (<b>text</b>) for key terms.
+   - Use bullet points (•) for main highlights.
+   - The tone should be informative and engaging for Uzbek readers.
+   - Preserve natural Uzbek grammar (o', g', sh, ch).
+2. "title": A catchy translation of the article title to Uzbek.
 
-Return ONLY valid JSON, no markdown or extra text."""
+Return ONLY valid JSON, no markdown blocks or extra text."""
                 },
                 {
                     "role": "user",
