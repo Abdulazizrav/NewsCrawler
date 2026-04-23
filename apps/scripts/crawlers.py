@@ -60,13 +60,11 @@ def crawl_with_rss(owner):
                 defaults={
                     'title': entry['title'],
                     'content': entry['summary'],
-                    'is_summary': True,
+                    'is_summary': False,
                     'source': feed.feed.title,
                     'published_date': entry['published']
                 }
             )
-            if created:
-                Summary.objects.create(article=article, summary_text=entry['summary'])
         print(f"{feed.feed.title} dan barcha ma'lumotlar yuklandi!")
 
 
@@ -181,7 +179,7 @@ def crawl_from_qalampir(owner):
                 'title': title,
                 'published_date': published,
                 'content': content,
-                'is_summary': True,
+                'is_summary': False,
                 'source': 'qalampir.uz'
             }
         )
