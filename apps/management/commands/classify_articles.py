@@ -28,8 +28,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         close_old_connections()  # ✅ add this
-        print("Classification command started!")
         user = User.objects.get(id=options["user_id"])
+        print(f"=== [START] Classification started for user: {user.username} (ID: {user.id})")
 
         start = datetime.datetime.now()
 
@@ -112,7 +112,7 @@ class Command(BaseCommand):
                         article=article,
                         topic=topic
                     )
-                    print(f"Article {article.id} classified as '{topic.name}'")
+                    print(f"+++ [SUCCESS] Article {article.id} classified as '{topic.name}'")
                     processed += 1
                 else:
                     print(f"Could not match topic '{topic_name}' to any known topic for article {article.id}")

@@ -38,6 +38,7 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f"Starting crawler for user: {user.username}")
         )
+        print(f"=== [START] Crawler started for user: {user.username}")
 
         start = datetime.datetime.now()
 
@@ -62,12 +63,19 @@ def run_all_crawlers(user):
     """
 
     try:
+        print("--- [FETCH] Crawling from TRUCK...")
         crawl_from_truck(user)
+        print("--- [FETCH] Crawling from RSS...")
         crawl_with_rss(user)
+        print("--- [FETCH] Crawling from GUARDIAN...")
         crawl_from_guardian(user)
+        print("--- [FETCH] Crawling from RSS HTTP...")
         crawl_from_rss_http(user)
+        print("--- [FETCH] Crawling from QALAMPIR...")
         crawl_from_qalampir(user)
+        print("--- [FETCH] Crawling from SPUTNIK...")
         crawl_from_sputnik(user)
+        print("+++ [FINISH] All sources crawled.")
 
     except Exception as e:
         print(f"Error: {e}")

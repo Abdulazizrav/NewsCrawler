@@ -111,10 +111,12 @@ def process_article(article, stats):
             return
 
         if not article.content or len(article.content) < 50:
+            print(f"--- [SKIPPED] Article {article.id}: Content too short or empty.")
             with stats_lock:
                 stats["skipped"] += 1
             return
 
+        print(f"--- [PROCESSING] Summarizing article {article.id}: {article.title[:50]}...")
         summary, translated_title = summarize_and_translate_with_openai(
             article.content,
             article.title
@@ -131,6 +133,7 @@ def process_article(article, stats):
         article.last_summarize_attempt = timezone.now()
         article.save()
 
+        print(f"+++ [SUCCESS] Article {article.id} summarized successfully.")
         with stats_lock:
             stats["processed"] += 1
 
@@ -159,6 +162,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         close_old_connections()
         user = User.objects.get(id=options["user_id"])
+        print(f"=== [START] Summarization started for user: {user.username} (ID: {user.id})")
 
         start = datetime.datetime.now()
 

@@ -60,6 +60,7 @@ async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list =
         )
 
     channels = await sync_to_async(list)(channel_qs)
+    print(f"--- [INFO] Found {len(summaries)} summaries and {len(channels)} active channels to process.")
 
     if not channels:
         logging.warning(f"No active channels found for user {user_id}")
@@ -92,9 +93,11 @@ async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list =
 
                 already_sent = await sync_to_async(check_already_sent)()
                 if already_sent:
+                    print(f"--- [SKIP] Summary {summary.id} already sent to channel {channel.id}.")
                     continue
 
                 if channel.balance < channel.price_per_message:
+                    print(f"--- [LOW BALANCE] Channel {channel.id} (Balance: {channel.balance}) cannot afford price {channel.price_per_message}.")
                     logging.warning(f"Channel {channel.id} insufficient balance, skipping")
                     continue
 
@@ -132,6 +135,7 @@ async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list =
                     channel.balance -= channel.price_per_message
                     await sync_to_async(channel.save)()
 
+                    print(f"+++ [SENT] Summary {summary.id} successfully sent to {channel.name} (ID: {channel.channel_id}).")
                     sent_count += 1
 
                 except Exception as send_err:
@@ -156,6 +160,7 @@ async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list =
 
 async def main(user_id: int, summary_ids: list = None, channel_ids: list = None):
     bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    print(f"=== [START] Telegram sender started for user_id: {user_id}")
     logging.info(f"Telegram sending started for user_id={user_id}, summary_ids={summary_ids}, channel_ids={channel_ids}")
     try:
         sent_count, error_count = await send_summaries_to_channels(bot, user_id, summary_ids, channel_ids)
