@@ -1,5 +1,6 @@
 import os
 import json
+import re
 
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
@@ -29,6 +30,15 @@ def extract_text(response):
         return response.output[0].content[0].text.strip()
     except Exception:
         return ""
+
+
+def clean_json_response(text: str) -> str:
+    """Extracts JSON from a string that might contain markdown or extra text."""
+    # Try to find content between the first { and last }
+    match = re.search(r'(\{.*\})', text, re.DOTALL)
+    if match:
+        return match.group(1)
+    return text.strip()
 
 
 def summarize_and_translate_with_openai(text: str, title: str) -> tuple[str, str]:
@@ -61,7 +71,10 @@ def summarize_and_translate_with_openai(text: str, title: str) -> tuple[str, str
 
 2. "title": A catchy translation of the article title to Uzbek.
 
-Return ONLY valid JSON, no markdown blocks or extra text."""
+CRITICAL: Return ONLY a raw JSON object. 
+DO NOT use ```json or any markdown blocks.
+DO NOT include any text before or after the JSON.
+Valid JSON format only."""
                 },
                 {
                     "role": "user",
@@ -73,16 +86,28 @@ Return ONLY valid JSON, no markdown blocks or extra text."""
         )
 
     response_text = extract_text(response)
+    cleaned_text = clean_json_response(response_text)
     
     try:
         # Parse the JSON response
-        result = json.loads(response_text)
+        result = json.loads(cleaned_text)
         summary = result.get("summary", "")
         translated_title = result.get("title", title)
+        
     except json.JSONDecodeError:
-        # Fallback if JSON parsing fails
-        summary = response_text[:200]
-        translated_title = title
+        print(f"!!! [ERROR] JSON parsing failed for article. Raw response: {response_text[:100]}...")
+        # Fallback: Try to strip common JSON noise manually if regex failed
+        summary = cleaned_text.replace('{"summary":', '').replace('"title":', '').replace('}', '').replace('{', '').strip()
+        # Remove trailing title part if it's there
+        if '"' in summary:
+            parts = summary.split('","')
+            summary = parts[0].strip('"')
+            if len(parts) > 1:
+                translated_title = parts[1].split('": "')[-1].strip('"')
+            else:
+                translated_title = title
+        else:
+            translated_title = title
     
     return summary, translated_title
 
