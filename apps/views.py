@@ -498,7 +498,7 @@ def classification_list(request):
     return render(request, 'classifications.html', {'page_obj': page_obj, 'topics': topics, 'current_topic': topic_filter})
 
 
-@login_required(login_url='/login/')
+@superadmin_required
 def topic_list(request):
     try:
         superadmin = request.user.profile.role == 'superadmin'
@@ -576,13 +576,19 @@ def topic_select(request):
 def channel_add(request):
     if request.method == 'POST':
         topic = get_object_or_404(Topic, pk=request.POST.get('topic'))
+        
+        # Superadmin logic for price and balance
+        is_sa = is_superadmin(request.user)
+        price = Decimal(request.POST.get('price_per_message', '0.10')) if is_sa else Decimal('0.10')
+        balance = Decimal(request.POST.get('balance', '100.00')) if is_sa else Decimal('100.00')
+
         TelegramChannel.objects.create(
             owner=request.user,
             name=request.POST.get('name'),
             channel_id=request.POST.get('channel_id'),
             topic=topic,
-            price_per_message=Decimal(request.POST.get('price_per_message')),
-            balance=Decimal(request.POST.get('balance')),
+            price_per_message=price,
+            balance=balance,
             is_active=True,
             last_payment_date=timezone.now()
         )
@@ -602,11 +608,14 @@ def channel_edit(request, pk):
         channel.name = request.POST.get('name')
         channel.channel_id = request.POST.get('channel_id')
         channel.topic = topic
-        channel.price_per_message = Decimal(request.POST.get('price_per_message'))
+        
+        if is_superadmin(request.user):
+            channel.price_per_message = Decimal(request.POST.get('price_per_message', channel.price_per_message))
+            
         channel.save()
         messages.success(request, f'Channel "{channel.name}" updated!')
         return redirect('dashboard:channel_list')
-    topics = Topic.objects.all().order_by('name')
+    topics = Topic.objects.filter(owner__is_staff=True).order_by('name')
     return render(request, 'channel_form.html', {'channel': channel, 'topics': topics, 'action': 'Edit'})
 
 

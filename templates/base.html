@@ -63,20 +63,26 @@
                 <i class="fas fa-house w-4 text-center"></i> Dashboard
             </a>
 
-            <p class="sidebar-section text-blue-200 uppercase px-3 pt-3 pb-1 font-semibold">News</p>
-
-            <a href="{% url 'dashboard:summary_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-white hover:text-white text-sm">
-                <i class="fas fa-align-left w-4 text-center"></i> Messages
-            </a>
-
-            <p class="sidebar-section text-blue-200 uppercase px-3 pt-3 pb-1 font-semibold">Telegram</p>
-
-            <a href="{% url 'dashboard:channel_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-white hover:text-white text-sm">
-                <i class="fab fa-telegram w-4 text-center"></i> Channels
-            </a>
-            <a href="{% url 'dashboard:delivery_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-white hover:text-white text-sm">
-                <i class="fas fa-paper-plane w-4 text-center"></i> Deliveries
-            </a>
+            <!-- ── TELEGRAM (Nested) ── -->
+            <div class="pt-2">
+                <button onclick="toggleSubmenu('telegram-submenu')" class="w-full sidebar-link flex items-center justify-between px-3 py-2 rounded-lg text-white hover:text-white text-sm focus:outline-none">
+                    <div class="flex items-center gap-3">
+                        <i class="fab fa-telegram w-4 text-center"></i> Telegram
+                    </div>
+                    <i class="fas fa-chevron-down text-[10px] transition-transform duration-200" id="telegram-chevron"></i>
+                </button>
+                <div id="telegram-submenu" class="hidden mt-1 pl-7 space-y-0.5">
+                    <a href="{% url 'dashboard:channel_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-1.5 rounded-lg text-white/70 hover:text-white text-[13px]">
+                        <i class="fas fa-list-ul w-3 text-center text-[10px]"></i> Channels
+                    </a>
+                    <a href="{% url 'dashboard:summary_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-1.5 rounded-lg text-white/70 hover:text-white text-[13px]">
+                        <i class="fas fa-envelope w-3 text-center text-[10px]"></i> Messages
+                    </a>
+                    <a href="{% url 'dashboard:delivery_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-1.5 rounded-lg text-white/70 hover:text-white text-[13px]">
+                        <i class="fas fa-paper-plane w-3 text-center text-[10px]"></i> Deliveries
+                    </a>
+                </div>
+            </div>
 
             <p class="sidebar-section text-blue-200 uppercase px-3 pt-3 pb-1 font-semibold">System</p>
 
@@ -150,6 +156,31 @@
         document.getElementById('current-time').textContent = new Date().toLocaleString();
         setTimeout(tick, 1000);
     })();
+
+    // Submenu Toggle
+    function toggleSubmenu(id) {
+        const menu = document.getElementById(id);
+        const chevron = document.getElementById(id.replace('-submenu', '-chevron'));
+        menu.classList.toggle('hidden');
+        if (chevron) {
+            chevron.classList.toggle('rotate-180');
+        }
+        // Save state
+        localStorage.setItem(id, !menu.classList.contains('hidden'));
+    }
+
+    // Restore Submenu State
+    document.addEventListener('DOMContentLoaded', () => {
+        const ids = ['telegram-submenu'];
+        ids.forEach(id => {
+            const menu = document.getElementById(id);
+            const chevron = document.getElementById(id.replace('-submenu', '-chevron'));
+            if (localStorage.getItem(id) === 'true') {
+                menu.classList.remove('hidden');
+                if (chevron) chevron.classList.add('rotate-180');
+            }
+        });
+    });
 
     // Active sidebar link
     const path = window.location.pathname;
