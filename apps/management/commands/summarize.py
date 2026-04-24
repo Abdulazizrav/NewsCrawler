@@ -59,13 +59,12 @@ def summarize_and_translate_with_openai(text: str, title: str) -> tuple[str, str
    - Use double newlines (\\n\\n) to separate the introduction from the highlights.
    - Every bullet point (•) MUST start on a NEW line.
    - Use emojis (📌, 🔹) to mark sections.
-   - Use HTML bold tags (<b>text</b>) for key phrases.
    - The summary should be easy to scan and professional.
 
    EXAMPLE STRUCTURE:
    📌 [Kirish qismi...]
    
-   🔹 **Asosiy ma'lumotlar:**
+   🔹 Asosiy ma'lumotlar:
    • [Birinchi fakt]
    • [Ikkinchi fakt]
 
