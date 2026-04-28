@@ -81,7 +81,7 @@ Valid JSON format only."""
                 }
             ],
             temperature=0.2,
-            max_output_tokens=350
+            max_output_tokens=1000
         )
 
     response_text = extract_text(response)
@@ -95,18 +95,37 @@ Valid JSON format only."""
         
     except json.JSONDecodeError:
         print(f"!!! [ERROR] JSON parsing failed for article. Raw response: {response_text[:100]}...")
-        # Fallback: Try to strip common JSON noise manually if regex failed
-        summary = cleaned_text.replace('{"summary":', '').replace('"title":', '').replace('}', '').replace('{', '').strip()
-        # Remove trailing title part if it's there
-        if '"' in summary:
-            parts = summary.split('","')
-            summary = parts[0].strip('"')
-            if len(parts) > 1:
-                translated_title = parts[1].split('": "')[-1].strip('"')
-            else:
-                translated_title = title
+        
+        # Robust fallback: Use regex to extract fields when JSON is malformed (e.g., unescaped newlines or truncation)
+        summary = ""
+        translated_title = title
+        
+        # Extract summary
+        summary_match = re.search(r'"summary"\s*:\s*"(.*?)"\s*(?:,\s*"title"|\}$)', cleaned_text, re.DOTALL)
+        if summary_match:
+            summary = summary_match.group(1).replace('\\n', '\n').replace('\\"', '"')
         else:
-            translated_title = title
+            # Absolute fallback if regex fails
+            clean_str = cleaned_text.strip()
+            if clean_str.startswith('{'): clean_str = clean_str[1:]
+            if clean_str.endswith('}'): clean_str = clean_str[:-1]
+            clean_str = re.sub(r'^"summary"\s*:\s*"', '', clean_str.strip())
+            
+            if '"title"' in clean_str:
+                parts = re.split(r'",?\s*"title"\s*:\s*"', clean_str)
+                summary = parts[0]
+                if len(parts) > 1:
+                    translated_title = parts[1].rstrip('"')
+            else:
+                summary = clean_str.rstrip('"')
+            
+            summary = summary.replace('\\n', '\n').replace('\\"', '"')
+
+        # Extract title if not caught by manual split
+        if translated_title == title:
+            title_match = re.search(r'"title"\s*:\s*"(.*?)"', cleaned_text, re.DOTALL)
+            if title_match:
+                translated_title = title_match.group(1).replace('\\"', '"')
     
     return summary, translated_title
 
