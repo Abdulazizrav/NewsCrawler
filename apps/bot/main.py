@@ -8,7 +8,8 @@ from aiogram import Bot, Dispatcher, html, types
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message
+from aiogram.types import Message, ChatMemberUpdated
+from aiogram.filters.chat_member_updated import ChatMemberUpdatedFilter, ADMINISTRATOR, MEMBER, IS_NOT_MEMBER
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
@@ -22,9 +23,43 @@ dp = Dispatcher()
 async def command_start_handler(message: Message) -> None:
     await message.answer(f"Hello, {html.bold(message.from_user.full_name)}!")
 
-@dp.channel_post()
-async def get_channel_id(message: types.Message):
-    print("CHANNEL ID:", message.chat.id)
+@dp.my_chat_member(ChatMemberUpdatedFilter(member_status_changed=IS_NOT_MEMBER >> ADMINISTRATOR))
+async def bot_added_as_admin(event: ChatMemberUpdated):
+    chat = event.chat
+    user = event.from_user
+    
+    text = f"✅ Bot successfully added as Administrator!\n\n" \
+           f"📢 <b>Channel Name:</b> {chat.title}\n" \
+           f"🆔 <b>Channel ID:</b> <code>{chat.id}</code>\n\n" \
+           f"<i>Please copy the Channel ID and use it in your dashboard to add this channel.</i>"
+           
+    try:
+        # Send a private message to the user who added the bot
+        await event.bot.send_message(chat_id=user.id, text=text)
+    except Exception:
+        # Fallback to sending a message to the channel itself
+        try:
+            await event.bot.send_message(chat_id=chat.id, text=text)
+        except Exception as e:
+            logging.error(f"Failed to send channel ID info: {e}")
+
+@dp.my_chat_member(ChatMemberUpdatedFilter(member_status_changed=IS_NOT_MEMBER >> MEMBER))
+async def bot_added_as_member(event: ChatMemberUpdated):
+    chat = event.chat
+    user = event.from_user
+    
+    text = f"✅ Bot successfully added to channel!\n\n" \
+           f"📢 <b>Channel Name:</b> {chat.title}\n" \
+           f"🆔 <b>Channel ID:</b> <code>{chat.id}</code>\n\n" \
+           f"⚠️ <i>Warning: I was added as a regular member. I need to be an <b>Administrator</b> to send messages to this channel!</i>"
+           
+    try:
+        await event.bot.send_message(chat_id=user.id, text=text)
+    except Exception:
+        try:
+            await event.bot.send_message(chat_id=chat.id, text=text)
+        except Exception as e:
+            logging.error(f"Failed to send channel ID info: {e}")
 
 
 @dp.message(Command("send"))
