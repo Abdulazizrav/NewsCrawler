@@ -738,8 +738,8 @@ def run_summarizer(request):
 @login_required(login_url='/login/')
 @require_POST
 def run_classifier(request):
-    subprocess.Popen([sys.executable, 'manage.py', 'classify_articles', f'--user_id={request.user.id}'])
-    messages.success(request, 'Classifier started!')
+    # subprocess.Popen([sys.executable, 'manage.py', 'classify_articles', f'--user_id={request.user.id}'])
+    messages.info(request, 'Classifier is currently disabled.')
     return redirect('dashboard:home')
 
 
