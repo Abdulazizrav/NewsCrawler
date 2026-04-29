@@ -54,26 +54,30 @@ def summarize_and_translate_with_openai(text: str, title: str) -> tuple[str, str
                 {
                     "role": "system",
                     "content": """Analyze the given article. Return a JSON object with exactly 2 fields:
-1. "summary": A structured, visually beautiful summary in Uzbek.
-   CRITICAL RULES for vertical spacing:
-   - Use double newlines (\\n\\n) to separate the introduction from the highlights.
+1. "summary": A concise, high-value summary in Uzbek.
+   CRITICAL QUALITY RULES:
+   - ZERO REPETITION: Do not repeat the same point in the introduction and the bullet points.
+   - NO TITLE REPETITION: Do not start the summary by repeating the title.
+   - CONCISE INTRO: The introduction (📌) must be exactly 1 or 2 short, punchy sentences.
+   - FACTUAL BULLETS: Every bullet point (•) must provide unique facts, arguments, or data found in the article. 
+   - Each bullet point MUST contain new information not previously mentioned in the summary.
+   
+   FORMATTING RULES:
+   - Use double newlines (\\n\\n) to separate the introduction from the details.
    - Every bullet point (•) MUST start on a NEW line.
    - Use emojis (📌, 🔹) to mark sections.
-   - The summary should be easy to scan and professional.
+   - The output must be professional and easy to scan.
 
    EXAMPLE STRUCTURE:
-   📌 [Kirish qismi...]
+   📌 [Short 1-2 sentence overview...]
    
-   🔹 Asosiy ma'lumotlar:
-   • [Birinchi fakt]
-   • [Ikkinchi fakt]
+   🔹 Muhim tafsilotlar:
+   • [Unique fact or argument A]
+   • [Unique fact or argument B]
 
-2. "title": A catchy translation of the article title to Uzbek.
+2. "title": A catchy, translated title in Uzbek.
 
-CRITICAL: Return ONLY a raw JSON object. 
-DO NOT use ```json or any markdown blocks.
-DO NOT include any text before or after the JSON.
-Valid JSON format only."""
+CRITICAL: Return ONLY raw JSON. No markdown blocks."""
                 },
                 {
                     "role": "user",
