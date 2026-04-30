@@ -10,6 +10,13 @@ django.setup()
 from bs4 import BeautifulSoup
 
 
+def normalize_url(url: str) -> str:
+    """Removes query parameters from URL to prevent duplicates (e.g. ?utm_source=...)"""
+    if not url:
+        return ""
+    return url.split('?')[0].split('#')[0].strip().rstrip('/')
+
+
 def extract_image(article, entry):
     if article.source == "Gazeta":
         return entry['links'][1]['href']
@@ -56,7 +63,7 @@ def crawl_with_rss(owner):
         for entry in feed.entries:
             article, created = Article.objects.get_or_create(
                 owner=owner,
-                url=entry['link'],
+            url=normalize_url(entry['link']),
                 defaults={
                     'title': entry['title'],
                     'content': entry['summary'],
@@ -129,7 +136,7 @@ def crawl_from_rss_http(owner):
 
             article, created = Article.objects.get_or_create(
                 owner=owner,
-                url=link,
+                url=normalize_url(link),
                 defaults={
                     'title': title,
                     'content': content,
@@ -174,7 +181,7 @@ def crawl_from_qalampir(owner):
         
         article, created = Article.objects.get_or_create(
             owner=owner,
-            url=url,
+            url=normalize_url(url),
             defaults={
                 'title': title,
                 'published_date': published,
@@ -204,7 +211,7 @@ def crawl_from_sputnik(owner):
         
         Article.objects.get_or_create(
             owner=owner,
-            url=url,
+            url=normalize_url(url),
             defaults={
                 'content': content,
                 'published_date': published,
@@ -230,7 +237,7 @@ def crawl_from_guardian(owner):
         
         Article.objects.get_or_create(
             owner=owner,
-            url=url,
+            url=normalize_url(url),
             defaults={
                 'title': title,
                 'content': content,
@@ -259,7 +266,7 @@ def crawl_from_truck(owner):
 
             article, created = Article.objects.get_or_create(
                 owner=owner,
-                url=link,
+                url=normalize_url(link),
                 defaults={
                     'title': title,
                     'content': content,
@@ -288,7 +295,7 @@ def crawl_from_truck(owner):
         
         article, created = Article.objects.get_or_create(
             owner=owner,
-            url=link,
+            url=normalize_url(link),
             defaults={
                 'title': title,
                 'content': content,

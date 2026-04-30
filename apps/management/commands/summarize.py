@@ -48,9 +48,9 @@ def summarize_and_translate_with_openai(text: str, title: str) -> tuple[str, str
     Saves 50% on API costs
     """
     with openai_semaphore:
-        response = client.responses.create(
-            model="gpt-4.1-mini",
-            input=[
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
                 {
                     "role": "system",
                     "content": """Analyze the given article. Return a JSON object with exactly 2 fields:
@@ -85,10 +85,10 @@ CRITICAL: Return ONLY raw JSON. No markdown blocks."""
                 }
             ],
             temperature=0.2,
-            max_output_tokens=1000
+            max_tokens=500
         )
 
-    response_text = extract_text(response)
+    response_text = response.choices[0].message.content
     cleaned_text = clean_json_response(response_text)
     
     try:
