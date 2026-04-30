@@ -183,8 +183,6 @@ def crawl_from_qalampir(owner):
                 'source': 'qalampir.uz'
             }
         )
-        if created:
-            image_from_qalampir(article=article)
     print("Qalampir dan barcha ma'lumotlar yuklandi")
 
 
