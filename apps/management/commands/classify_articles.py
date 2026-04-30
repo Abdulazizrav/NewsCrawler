@@ -43,11 +43,11 @@ class Command(BaseCommand):
 
         articles = Article.objects.filter(
             owner=user,
-            is_summary=True
+            is_summary=False
         )
 
         if not articles.exists():
-            self.stdout.write("No summarized articles found for this user.")
+            self.stdout.write("No articles found for classification.")
             return
 
         self.stdout.write(f"Found {articles.count()} articles to classify...")
@@ -63,25 +63,21 @@ class Command(BaseCommand):
                 skipped += 1
                 continue
 
-            summary = Summary.objects.filter(article=article).first()
-            if not summary or not summary.summary_text:
-                print(f"No summary found for article {article.id}, skipping.")
-                skipped += 1
-                continue
-
-            text = summary.summary_text
-            print(f"Classifying article {article.id}: {text[:80]}...")
+            # Use Title and Content for classification as summary is not generated yet
+            text = f"TITLE: {article.title}\n\nCONTENT: {article.content[:2000]}" # Limit content length
+            print(f"Classifying article {article.id}: {article.title[:80]}...")
 
             try:
-                response = client.responses.create(
-                    model="gpt-4.1-mini",
-                    input=[
+                response = client.chat.completions.create( # Using chat.completions instead of responses
+                    model="gpt-4o-mini",
+                    messages=[
                         {
                             "role": "system",
                             "content": (
-                                f"You are a classifier. Choose exactly one topic from this list and respond with "
-                                f"ONLY that topic name — no explanation, no punctuation, no extra text:\n"
-                                f"{', '.join(topic_names)}"
+                                f"You are a professional news classifier. Analyze the article and choose exactly one topic from this list:\n"
+                                f"{', '.join(topic_names)}\n\n"
+                                f"If the article DOES NOT fit any of these topics, respond with ONLY the word 'None'.\n"
+                                f"Otherwise, respond with ONLY the exact topic name — no explanation, no punctuation, no extra text."
                             )
                         },
                         {
@@ -90,11 +86,20 @@ class Command(BaseCommand):
                         }
                     ],
                     temperature=0.0,
-                    max_output_tokens=50
+                    max_tokens=50
                 )
 
-                topic_name = extract_text(response).strip().strip(".,!?\"'")
-                print(f"GPT returned topic: '{topic_name}'")
+                topic_name = response.choices[0].message.content.strip().strip(".,!?\"'")
+                print(f"GPT returned: '{topic_name}'")
+
+                if topic_name.lower() == 'none' or topic_name.lower() == 'not relevant':
+                    Classification.objects.create(
+                        article=article,
+                        topic=None
+                    )
+                    print(f"--- [NONE] Article {article.id} marked as Not Relevant")
+                    processed += 1
+                    continue
 
                 # Try exact match first (case-insensitive)
                 topic = topics.filter(name__iexact=topic_name).first()
@@ -115,8 +120,13 @@ class Command(BaseCommand):
                     print(f"+++ [SUCCESS] Article {article.id} classified as '{topic.name}'")
                     processed += 1
                 else:
-                    print(f"Could not match topic '{topic_name}' to any known topic for article {article.id}")
-                    failed += 1
+                    # If AI returned something that isn't a topic and isn't "None", we mark as None to avoid re-runs
+                    Classification.objects.create(
+                        article=article,
+                        topic=None
+                    )
+                    print(f"!!! [UNMATCHED] '{topic_name}' did not match topics. Marked as None.")
+                    processed += 1
 
             except Exception as e:
                 print(f"Error classifying article {article.id}: {e}")

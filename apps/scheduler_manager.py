@@ -117,11 +117,10 @@ def _user_pipeline_loop(user_id: int):
             logger.info(f"⚡ [user={user_id}] Running pipeline...")
             _run_command([sys.executable, 'manage.py', 'crawl_news', f'--user_id={user_id}'], user_id, 'Crawl')  # ✅
             time.sleep(10)
+            _run_command([sys.executable, 'manage.py', 'classify_articles', f'--user_id={user_id}'], user_id, 'Classify')  # ✅
+            time.sleep(10)
             _run_command([sys.executable, 'manage.py', 'summarize', f'--user_id={user_id}'], user_id, 'Summarize')  # ✅
             time.sleep(10)
-            # Classification disabled as per user request
-            # _run_command([sys.executable, 'manage.py', 'classify_articles', f'--user_id={user_id}'], user_id, 'Classify')  # ✅
-            # time.sleep(10)
             logger.info(f"🏁 [user={user_id}] Pipeline done. Sleeping 1 hour...")
             time.sleep(3600)
     except Exception as e:

@@ -216,11 +216,20 @@ class Command(BaseCommand):
         # Reset stats per run (not global state)
         stats = {"processed": 0, "failed": 0, "skipped": 0}
 
+        # Get active topics for this user (topics linked to active channels)
+        from apps.models import TelegramChannel, Classification
+        active_topics = TelegramChannel.objects.filter(
+            owner=user,
+            is_active=True
+        ).values_list('topic_id', flat=True).distinct()
+
+        # Filter articles that have been classified into one of these active topics
         articles = list(
             Article.objects.filter(
                 owner=user,
-                is_summary=False
-            )
+                is_summary=False,
+                article_classifications__topic_id__in=active_topics
+            ).distinct()
         )
 
         if not articles:
