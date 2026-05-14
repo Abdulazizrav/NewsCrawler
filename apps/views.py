@@ -394,9 +394,15 @@ def summary_edit(request, pk):
         return redirect('dashboard:summary_list')
     summary.summary_text = new_text
     summary.save()
-    if new_title:
-        summary.article.title = new_title
-        summary.article.save(update_fields=['title'])
+
+    # Automatically extract the first line as the article title for the dashboard/logs
+    lines = new_text.split('\n')
+    if lines:
+        extracted_title = lines[0].strip()
+        if len(extracted_title) > 5:
+            summary.article.title = extracted_title
+            summary.article.save(update_fields=['title'])
+
     messages.success(request, 'Summary updated successfully!')
     # ✅ preserve page number
     page = request.POST.get('page', '1')

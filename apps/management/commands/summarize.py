@@ -41,11 +41,10 @@ def clean_json_response(text: str) -> str:
     return text.strip()
 
 
-def summarize_and_translate_with_openai(text: str, title: str) -> tuple[str, str]:
+def summarize_and_translate_with_openai(text: str, title: str) -> str:
     """
-    OPTIMIZED: Single API call instead of 2 separate calls
-    Returns JSON with both summary and translated title
-    Saves 50% on API costs
+    Returns a single, fully translated block of text in Uzbek.
+    The first line is the translated title, followed by the summary.
     """
     with openai_semaphore:
         response = client.chat.completions.create(
@@ -53,85 +52,28 @@ def summarize_and_translate_with_openai(text: str, title: str) -> tuple[str, str
             messages=[
                 {
                     "role": "system",
-                    "content": """Analyze the given article. Return a JSON object with exactly 2 fields:
-1. "summary": A concise, high-value summary in Uzbek.
-   CRITICAL QUALITY RULES:
-   - ZERO REPETITION: Do not repeat the same point in the introduction and the bullet points.
-   - NO TITLE REPETITION: Do not start the summary by repeating the title.
-   - CONCISE INTRO: The introduction (📌) must be exactly 1 or 2 short, punchy sentences.
-   - FACTUAL BULLETS: Every bullet point (•) must provide unique facts, arguments, or data found in the article. 
-   - Each bullet point MUST contain new information not previously mentioned in the summary.
-   
-   FORMATTING RULES:
-   - Use double newlines (\\n\\n) to separate the introduction from the details.
-   - Every bullet point (•) MUST start on a NEW line.
-   - Use emojis (📌, 🔹) to mark sections.
-   - The output must be professional and easy to scan.
-
-   EXAMPLE STRUCTURE:
-   📌 [Short 1-2 sentence overview...]
-   
-   🔹 Muhim tafsilotlar:
-   • [Unique fact or argument A]
-   • [Unique fact or argument B]
-
-2. "title": A catchy, translated title in Uzbek.
-
-CRITICAL: Return ONLY raw JSON. No markdown blocks."""
+                    "content": (
+                        "You are a professional news translator and summarizer. "
+                        "Translate the article title and summarize its content into a single, cohesive block of text in Uzbek.\n\n"
+                        "FORMATTING RULES:\n"
+                        "1. The FIRST line must be the translated title (no emojis, just the title).\n"
+                        "2. Followed by a blank line.\n"
+                        "3. Then the summary, starting with 📌.\n"
+                        "4. Use 🔹 for bullet points.\n"
+                        "5. Ensure ZERO repetition between the title and the summary details.\n"
+                        "6. Return ONLY the translated Uzbek text."
+                    )
                 },
                 {
                     "role": "user",
-                    "content": f"Article Title: {title}\n\nArticle Content: {text}"
+                    "content": f"Title: {title}\n\nContent: {text}"
                 }
             ],
             temperature=0.2,
-            max_tokens=500
+            max_tokens=600
         )
 
-    response_text = response.choices[0].message.content
-    cleaned_text = clean_json_response(response_text)
-    
-    try:
-        # Parse the JSON response
-        result = json.loads(cleaned_text)
-        summary = result.get("summary", "")
-        translated_title = result.get("title", title)
-        
-    except json.JSONDecodeError:
-        print(f"!!! [ERROR] JSON parsing failed for article. Raw response: {response_text[:100]}...")
-        
-        # Robust fallback: Use regex to extract fields when JSON is malformed (e.g., unescaped newlines or truncation)
-        summary = ""
-        translated_title = title
-        
-        # Extract summary
-        summary_match = re.search(r'"summary"\s*:\s*"(.*?)"\s*(?:,\s*"title"|\}$)', cleaned_text, re.DOTALL)
-        if summary_match:
-            summary = summary_match.group(1).replace('\\n', '\n').replace('\\"', '"')
-        else:
-            # Absolute fallback if regex fails
-            clean_str = cleaned_text.strip()
-            if clean_str.startswith('{'): clean_str = clean_str[1:]
-            if clean_str.endswith('}'): clean_str = clean_str[:-1]
-            clean_str = re.sub(r'^"summary"\s*:\s*"', '', clean_str.strip())
-            
-            if '"title"' in clean_str:
-                parts = re.split(r'",?\s*"title"\s*:\s*"', clean_str)
-                summary = parts[0]
-                if len(parts) > 1:
-                    translated_title = parts[1].rstrip('"')
-            else:
-                summary = clean_str.rstrip('"')
-            
-            summary = summary.replace('\\n', '\n').replace('\\"', '"')
-
-        # Extract title if not caught by manual split
-        if translated_title == title:
-            title_match = re.search(r'"title"\s*:\s*"(.*?)"', cleaned_text, re.DOTALL)
-            if title_match:
-                translated_title = title_match.group(1).replace('\\"', '"')
-    
-    return summary, translated_title
+    return response.choices[0].message.content.strip()
 
 
 def process_article(article, stats):
@@ -164,14 +106,22 @@ def process_article(article, stats):
             return
 
         print(f"--- [PROCESSING] Summarizing article {article.id}: {article.title[:50]}...")
-        summary, translated_title = summarize_and_translate_with_openai(
+        full_content = summarize_and_translate_with_openai(
             article.content,
             article.title
         )
 
+        # Split the first line as the title
+        lines = full_content.split('\n')
+        translated_title = lines[0].strip()
+        
+        # If the first line is empty or too short, fallback to original title
+        if len(translated_title) < 5:
+            translated_title = article.title
+
         Summary.objects.create(
             article=article,
-            summary_text=summary
+            summary_text=full_content
         )
 
         article.is_summary = True
