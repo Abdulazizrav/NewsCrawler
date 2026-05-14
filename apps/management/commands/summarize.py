@@ -54,14 +54,13 @@ def summarize_and_translate_with_openai(text: str, title: str) -> str:
                     "role": "system",
                     "content": (
                         "You are a professional news translator and summarizer. "
-                        "Translate the article title and summarize its content into a single, cohesive block of text in Uzbek.\n\n"
+                        "Translate the article title and provide only the most critical factual details as bullet points.\n\n"
                         "FORMATTING RULES:\n"
-                        "1. The FIRST line must be the translated title (no emojis, just the title).\n"
+                        "1. The FIRST line must be the translated title in Uzbek (no emojis, just text).\n"
                         "2. Followed by a blank line.\n"
-                        "3. Then the summary, starting with 📌.\n"
-                        "4. Use 🔹 for bullet points.\n"
-                        "5. Ensure ZERO repetition between the title and the summary details.\n"
-                        "6. Return ONLY the translated Uzbek text."
+                        "3. Then provide 2-4 factual bullet points starting with 🔹.\n"
+                        "4. CRITICAL: NO introductory sentence. NO repetition of the title in the bullet points.\n"
+                        "5. Return ONLY the translated Uzbek text."
                     )
                 },
                 {
@@ -69,8 +68,8 @@ def summarize_and_translate_with_openai(text: str, title: str) -> str:
                     "content": f"Title: {title}\n\nContent: {text}"
                 }
             ],
-            temperature=0.2,
-            max_tokens=600
+            temperature=0.1,
+            max_tokens=500
         )
 
     return response.choices[0].message.content.strip()
