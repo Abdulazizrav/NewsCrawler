@@ -71,9 +71,17 @@ async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list =
 
     for summary in summaries:
         try:
+            # Split summary_text to bold the first line (the title) and keep the rest
+            text_lines = summary.summary_text.split('\n', 1)
+            if len(text_lines) > 1:
+                title_line = text_lines[0].strip()
+                body_text = text_lines[1].strip()
+                caption_text = f"<b>{title_line}</b>\n\n{body_text}"
+            else:
+                caption_text = f"<b>{summary.summary_text}</b>"
+
             caption = (
-                f"<b>{summary.article.title}</b>\n\n"
-                f"{summary.summary_text}\n\n"
+                f"{caption_text}\n\n"
                 f'<a href="{summary.article.url}">Batafsil</a>'
             )
 
