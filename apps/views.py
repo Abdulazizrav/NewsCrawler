@@ -593,6 +593,7 @@ def channel_add(request):
             name=request.POST.get('name'),
             channel_id=request.POST.get('channel_id'),
             topic=topic,
+            tone=request.POST.get('tone', 'Neutral'),
             price_per_message=price,
             balance=balance,
             is_active=True,
@@ -614,6 +615,7 @@ def channel_edit(request, pk):
         channel.name = request.POST.get('name')
         channel.channel_id = request.POST.get('channel_id')
         channel.topic = topic
+        channel.tone = request.POST.get('tone', 'Neutral')
         
         if is_superadmin(request.user):
             channel.price_per_message = Decimal(request.POST.get('price_per_message', channel.price_per_message))

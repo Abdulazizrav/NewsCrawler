@@ -19,6 +19,7 @@
             <tr>
                 <th class="text-left p-4 font-semibold text-gray-700">Channel</th>
                 <th class="text-left p-4 font-semibold text-gray-700">Topic</th>
+                <th class="text-left p-4 font-semibold text-gray-700">Tone</th>
                 <th class="text-left p-4 font-semibold text-gray-700">Balance</th>
                 <th class="text-left p-4 font-semibold text-gray-700">Price/Msg</th>
                 <th class="text-left p-4 font-semibold text-gray-700">Messages</th>
@@ -44,6 +45,14 @@
                 <td class="p-4">
                     <span class="inline-block px-3 py-1 bg-purple-100 text-purple-800 text-sm font-semibold rounded-full">
                         {{ channel.topic.name }}
+                    </span>
+                </td>
+                <td class="p-4">
+                    <span class="inline-block px-3 py-1 text-sm font-semibold rounded-full
+                        {% if channel.tone == 'Formal' %}bg-indigo-100 text-indigo-800
+                        {% elif channel.tone == 'Informal' %}bg-green-100 text-green-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ channel.tone|default:"Neutral" }}
                     </span>
                 </td>
                 <td class="p-4">

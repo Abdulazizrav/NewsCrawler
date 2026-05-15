@@ -224,6 +224,11 @@
                             </button>
                         </div>
                         <div class="flex items-center mt-2.5 text-xs text-gray-400 space-x-4">
+                            {% if summary.telegram_channel %}
+                                <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+                                    <i class="fas fa-paper-plane mr-1"></i>{{ summary.telegram_channel.name }} ({{ summary.telegram_channel.tone }})
+                                </span>
+                            {% endif %}
                             <span><i class="fas fa-globe mr-1"></i>{{ summary.article.source }}</span>
                             <span><i class="fas fa-clock mr-1"></i>{{ summary.created_date|timesince }} ago</span>
                             <a href="{% url 'dashboard:article_detail' summary.article.pk %}" class="text-blue-500 hover:underline">View Original</a>

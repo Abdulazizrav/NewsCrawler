@@ -41,11 +41,18 @@ def clean_json_response(text: str) -> str:
     return text.strip()
 
 
-def summarize_and_translate_with_openai(text: str, title: str) -> str:
+def summarize_and_translate_with_openai(text: str, title: str, tone: str = "Neutral") -> str:
     """
-    Returns a single, fully translated block of text in Uzbek.
+    Returns a single, fully translated block of text in Uzbek with a specific tone.
     The first line is the translated title, followed by the summary.
     """
+    tone_instructions = {
+        "Formal": "Use a highly Formal, professional, and authoritative tone. Avoid slang or casual language.",
+        "Neutral": "Use a Neutral, balanced, and objective tone. Stick to facts.",
+        "Informal": "Use an Informal, friendly, and conversational tone. You can be more engaging and direct."
+    }
+    tone_desc = tone_instructions.get(tone, tone_instructions["Neutral"])
+
     with openai_semaphore:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -54,6 +61,7 @@ def summarize_and_translate_with_openai(text: str, title: str) -> str:
                     "role": "system",
                     "content": (
                         "You are a professional news translator and summarizer. "
+                        f"CRITICAL: {tone_desc}\n\n"
                         "Translate the article title and provide only the most critical factual details as bullet points.\n\n"
                         "FORMATTING RULES:\n"
                         "1. The FIRST line must be the translated title in Uzbek (no emojis, just text).\n"
@@ -75,78 +83,73 @@ def summarize_and_translate_with_openai(text: str, title: str) -> str:
     return response.choices[0].message.content.strip()
 
 
-def process_article(article, stats):
-    """Process single article with failure tracking"""
-    # Claim this article atomically — skip if another thread already took it
+def process_article_for_channel(article, channel, stats):
+    """Process single article for a specific channel with its specific tone"""
+    # Claim this (article, channel) pair atomically
+    task_id = f"{article.id}_{channel.id}"
     with processing_lock:
-        if article.id in processing_ids:
-            with stats_lock:
-                stats["skipped"] += 1
+        if task_id in processing_ids:
             return
-        processing_ids.add(article.id)
+        processing_ids.add(task_id)
 
     try:
-        # Double-check in DB after claiming (handles re-runs)
-        if article.is_summary or Summary.objects.filter(article=article).exists():
+        # Check if summary already exists for this channel
+        if Summary.objects.filter(article=article, telegram_channel=channel).exists():
             with stats_lock:
                 stats["skipped"] += 1
             return
 
-        # ✅ CRITICAL: Skip if failed too many times - prevents infinite retries
         if article.summarize_failed_count >= MAX_SUMMARIZE_FAILURES:
             with stats_lock:
                 stats["skipped"] += 1
             return
 
         if not article.content or len(article.content) < 50:
-            print(f"--- [SKIPPED] Article {article.id}: Content too short or empty.")
             with stats_lock:
                 stats["skipped"] += 1
             return
 
-        print(f"--- [PROCESSING] Summarizing article {article.id}: {article.title[:50]}...")
+        print(f"--- [PROCESSING] Summarizing article {article.id} for channel '{channel.name}' (Tone: {channel.tone})...")
         full_content = summarize_and_translate_with_openai(
             article.content,
-            article.title
+            article.title,
+            channel.tone
         )
 
-        # Split the first line as the title
+        # Split the first line as the title for the article itself (optional, might overwrite)
         lines = full_content.split('\n')
         translated_title = lines[0].strip()
-        
-        # If the first line is empty or too short, fallback to original title
         if len(translated_title) < 5:
             translated_title = article.title
 
         Summary.objects.create(
             article=article,
+            telegram_channel=channel,
             summary_text=full_content
         )
 
+        # Mark article as summarized globally (at least once)
         article.is_summary = True
-        article.title = translated_title
-        article.summarize_failed_count = 0  # Reset on success
+        article.title = translated_title  # This updates the main article title to the latest translated one
+        article.summarize_failed_count = 0 
         article.last_summarize_attempt = timezone.now()
         article.save()
 
-        print(f"+++ [SUCCESS] Article {article.id} summarized successfully.")
+        print(f"+++ [SUCCESS] Article {article.id} summarized for channel {channel.id}.")
         with stats_lock:
             stats["processed"] += 1
 
     except Exception as e:
-        print(f"Error processing article {article.id}: {e}")
+        print(f"Error processing article {article.id} for channel {channel.id}: {e}")
         with stats_lock:
             stats["failed"] += 1
-        
-        # ✅ Track failure count to avoid infinite retries
         article.summarize_failed_count += 1
         article.last_summarize_attempt = timezone.now()
         article.save()
 
     finally:
-        # Always release the article ID so re-runs work correctly
         with processing_lock:
-            processing_ids.discard(article.id)
+            processing_ids.discard(task_id)
 
 
 class Command(BaseCommand):
@@ -165,30 +168,34 @@ class Command(BaseCommand):
         # Reset stats per run (not global state)
         stats = {"processed": 0, "failed": 0, "skipped": 0}
 
-        # Get active topics for this user (topics linked to active channels)
-        from apps.models import TelegramChannel, Classification
-        active_topics = TelegramChannel.objects.filter(
-            owner=user,
-            is_active=True
-        ).values_list('topic_id', flat=True).distinct()
+        # Get active channels for this user
+        from apps.models import TelegramChannel
+        channels = TelegramChannel.objects.filter(owner=user, is_active=True).select_related('topic')
 
-        # Filter articles that have been classified into one of these active topics
-        articles = list(
-            Article.objects.filter(
+        tasks = []
+        for channel in channels:
+            # Get articles for this channel's topic that don't have a summary for THIS channel yet
+            # and haven't failed too many times
+            articles = Article.objects.filter(
                 owner=user,
-                is_summary=False,
-                article_classifications__topic_id__in=active_topics
+                article_classifications__topic=channel.topic
+            ).exclude(
+                summaries__telegram_channel=channel
+            ).filter(
+                summarize_failed_count__lt=MAX_SUMMARIZE_FAILURES
             ).distinct()
-        )
 
-        if not articles:
+            for article in articles:
+                tasks.append((article, channel))
+
+        if not tasks:
             self.stdout.write("No articles to summarize.")
             return
 
-        self.stdout.write(f"Found {len(articles)} articles to process...")
+        self.stdout.write(f"Found {len(tasks)} Article-Channel pairs to process...")
 
         with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = [executor.submit(process_article, a, stats) for a in articles]
+            futures = [executor.submit(process_article_for_channel, t[0], t[1], stats) for t in tasks]
             for f in as_completed(futures):
                 f.result()
 

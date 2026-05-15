@@ -91,6 +91,11 @@ async def send_summaries_to_channels(bot: Bot, user_id: int, summary_ids: list =
                         status="sent"
                     ).exists()
 
+                # ✅ Option B: Ensure summary matches the channel it was generated for
+                if summary.telegram_channel and summary.telegram_channel != channel:
+                    print(f"--- [SKIP] Summary {summary.id} is for channel {summary.telegram_channel.id}, not channel {channel.id}.")
+                    continue
+
                 already_sent = await sync_to_async(check_already_sent)()
                 if already_sent:
                     print(f"--- [SKIP] Summary {summary.id} already sent to channel {channel.id}.")

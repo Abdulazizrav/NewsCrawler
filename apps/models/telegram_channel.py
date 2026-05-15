@@ -13,6 +13,7 @@ class TelegramChannel(models.Model):
     price_per_message = models.DecimalField(max_digits=12, decimal_places=2)
     balance = models.DecimalField(max_digits=12, decimal_places=2)
     is_active = models.BooleanField(default=False)
+    tone = models.CharField(max_length=20, choices=[('Formal', 'Formal'), ('Neutral', 'Neutral'), ('Informal', 'Informal')], default='Neutral')
     last_payment_date = models.DateTimeField(null=True, blank=True)
 
     topic = models.ForeignKey(Topic, on_delete=CASCADE, related_name="telegram_channels")

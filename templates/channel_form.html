@@ -44,6 +44,18 @@
                     <p class="text-sm text-gray-500 mt-1">Which topic should this channel receive?</p>
                 </div>
 
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2">Summary Tone *</label>
+                    <select name="tone"
+                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required>
+                        <option value="Formal" {% if channel.tone == 'Formal' %}selected{% endif %}>Formal (Professional, authoritative)</option>
+                        <option value="Neutral" {% if channel.tone == 'Neutral' or not channel.tone %}selected{% endif %}>Neutral (Balanced, objective)</option>
+                        <option value="Informal" {% if channel.tone == 'Informal' %}selected{% endif %}>Informal (Friendly, casual)</option>
+                    </select>
+                    <p class="text-sm text-gray-500 mt-1">The style of the AI-generated summaries for this channel.</p>
+                </div>
+
                 {% if request.user.profile.role == 'superadmin' %}
                 <div class="mb-4">
                     <label class="block text-gray-700 font-semibold mb-2">Price per Message ($) *</label>

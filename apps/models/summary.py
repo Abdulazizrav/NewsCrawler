@@ -3,6 +3,7 @@ from django.db.models import Model, ForeignKey, CASCADE, TextField, DateTimeFiel
 
 class Summary(Model):
     article = ForeignKey("Article", on_delete=CASCADE, related_name="summaries", null=True, blank=True)
+    telegram_channel = ForeignKey("TelegramChannel", on_delete=CASCADE, related_name="summaries", null=True, blank=True)
     summary_text = TextField(null=True, blank=True)
     created_date = DateTimeField(auto_now_add=True, blank=True, null=True)
 
