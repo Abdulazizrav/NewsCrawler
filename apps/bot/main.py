@@ -23,43 +23,44 @@ dp = Dispatcher()
 async def command_start_handler(message: Message) -> None:
     await message.answer(f"Hello, {html.bold(message.from_user.full_name)}!")
 
-@dp.my_chat_member(ChatMemberUpdatedFilter(member_status_changed=IS_NOT_MEMBER >> ADMINISTRATOR))
-async def bot_added_as_admin(event: ChatMemberUpdated):
+@dp.my_chat_member()
+async def bot_added_to_chat(event: ChatMemberUpdated):
     chat = event.chat
     user = event.from_user
-    
-    text = f"✅ Bot successfully added as Administrator!\n\n" \
-           f"📢 <b>Channel Name:</b> {chat.title}\n" \
-           f"🆔 <b>Channel ID:</b> <code>{chat.id}</code>\n\n" \
-           f"<i>Please copy the Channel ID and use it in your dashboard to add this channel.</i>"
-           
-    try:
-        # Send a private message to the user who added the bot
-        await event.bot.send_message(chat_id=user.id, text=text)
-    except Exception:
-        # Fallback to sending a message to the channel itself
-        try:
-            await event.bot.send_message(chat_id=chat.id, text=text)
-        except Exception as e:
-            logging.error(f"Failed to send channel ID info: {e}")
+    new_status = event.new_chat_member.status
 
-@dp.my_chat_member(ChatMemberUpdatedFilter(member_status_changed=IS_NOT_MEMBER >> MEMBER))
-async def bot_added_as_member(event: ChatMemberUpdated):
-    chat = event.chat
-    user = event.from_user
+    # We only care if the bot was added or promoted
+    if new_status not in ["administrator", "member"]:
+        return
+
+    is_admin = new_status == "administrator"
     
-    text = f"✅ Bot successfully added to channel!\n\n" \
-           f"📢 <b>Channel Name:</b> {chat.title}\n" \
-           f"🆔 <b>Channel ID:</b> <code>{chat.id}</code>\n\n" \
-           f"⚠️ <i>Warning: I was added as a regular member. I need to be an <b>Administrator</b> to send messages to this channel!</i>"
-           
+    if is_admin:
+        text = f"✅ <b>Bot successfully added as Administrator!</b>\n\n" \
+               f"📢 <b>Channel Name:</b> {chat.title}\n" \
+               f"🆔 <b>Channel ID:</b> <code>{chat.id}</code>\n\n" \
+               f"<i>Please copy the Channel ID above and use it in your dashboard to add this channel.</i>"
+    else:
+        text = f"✅ <b>Bot successfully added to channel!</b>\n\n" \
+               f"📢 <b>Channel Name:</b> {chat.title}\n" \
+               f"🆔 <b>Channel ID:</b> <code>{chat.id}</code>\n\n" \
+               f"⚠️ <i>Warning: I was added as a regular member. I need to be promoted to <b>Administrator</b> with posting permissions to send messages to this channel!</i>"
+
+    # 1. First try to post the channel ID directly in the channel itself
+    # This guarantees the owner sees it instantly without needing to have a private chat with the bot
+    try:
+        await event.bot.send_message(chat_id=chat.id, text=text)
+        logging.info(f"Successfully posted Channel ID to channel {chat.title} ({chat.id})")
+        return
+    except Exception as e:
+        logging.warning(f"Could not post to channel: {e}. Trying private message to user...")
+
+    # 2. Fallback to sending a private message to the user who added the bot
     try:
         await event.bot.send_message(chat_id=user.id, text=text)
-    except Exception:
-        try:
-            await event.bot.send_message(chat_id=chat.id, text=text)
-        except Exception as e:
-            logging.error(f"Failed to send channel ID info: {e}")
+        logging.info(f"Successfully sent Channel ID to user {user.username} ({user.id})")
+    except Exception as e:
+        logging.error(f"Failed to send channel ID info entirely: {e}")
 
 
 @dp.message(Command("send"))
