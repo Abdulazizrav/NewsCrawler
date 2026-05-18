@@ -316,6 +316,60 @@ def superadmin_statistics(request):
     return render(request, 'superadmin/statistics.html', context)
 
 
+@superadmin_required
+def superadmin_hints(request):
+    hints = FieldHint.objects.all()
+    # Find which fields don't have hints yet
+    existing_fields = hints.values_list('field_name', flat=True)
+    available_choices = [c for c in FieldHint.FIELD_CHOICES if c[0] not in existing_fields]
+    
+    context = {
+        'hints': hints,
+        'available_choices': available_choices,
+    }
+    return render(request, 'superadmin/hints.html', context)
+
+
+@superadmin_required
+@require_POST
+def superadmin_hint_upload(request):
+    field_name = request.POST.get('field_name')
+    video_file = request.FILES.get('video_file')
+    
+    if field_name and video_file:
+        hint, created = FieldHint.objects.get_or_create(field_name=field_name)
+        hint.video_data = video_file.read()
+        hint.content_type = video_file.content_type
+        hint.save()
+        messages.success(request, f"Video hint added for '{hint.get_field_name_display()}'")
+    else:
+        messages.error(request, "Please provide both a field and a video file.")
+        
+    return redirect('dashboard:superadmin_hints')
+
+
+@superadmin_required
+@require_POST
+def superadmin_hint_delete(request, pk):
+    hint = get_object_or_404(FieldHint, pk=pk)
+    hint.delete()
+    messages.success(request, "Hint deleted successfully.")
+    return redirect('dashboard:superadmin_hints')
+
+
+def serve_hint_video(request, field_name):
+    """Publicly accessible view to stream the binary video data."""
+    hint = get_object_or_404(FieldHint, field_name=field_name)
+    if not hint.video_data:
+        return HttpResponse(status=404)
+        
+    response = HttpResponse(hint.video_data, content_type=hint.content_type)
+    # Enable caching since these rarely change
+    response['Cache-Control'] = 'public, max-age=86400'
+    response['Accept-Ranges'] = 'bytes'
+    return response
+
+
 # ══════════════════════════════════════════════════════════
 #  CHANNEL ADMIN VIEWS
 # ══════════════════════════════════════════════════════════
