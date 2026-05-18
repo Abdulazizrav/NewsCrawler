@@ -67,8 +67,9 @@ def summarize_and_translate_with_openai(text: str, title: str, tone: str = "Neut
                         "1. The FIRST line must be the translated title in Uzbek (no emojis, just text).\n"
                         "2. Followed by a blank line.\n"
                         "3. Then provide 2-4 factual bullet points starting with 🔹.\n"
-                        "4. CRITICAL: NO introductory sentence. NO repetition of the title in the bullet points.\n"
-                        "5. Return ONLY the translated Uzbek text."
+                        "4. CRITICAL: NEVER repeat the information already stated in the title. The bullet points MUST contain ONLY new, unique, and additional facts that elaborate on the title. Skip the obvious.\n"
+                        "5. CRITICAL: NO introductory sentence. Jump straight into the new facts.\n"
+                        "6. Return ONLY the translated Uzbek text."
                     )
                 },
                 {
