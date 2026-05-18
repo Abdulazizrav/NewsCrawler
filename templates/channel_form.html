@@ -11,7 +11,14 @@
                 {% csrf_token %}
 
                 <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2">Channel Name *</label>
+                    <label class="block text-gray-700 font-semibold mb-2 flex items-center justify-between">
+                        <span>Channel Name *</span>
+                        {% if hints.channel_name %}
+                        <button type="button" onclick="showHintModal('channel_name')" class="text-blue-500 hover:text-blue-700 text-xs font-semibold flex items-center gap-1 focus:outline-none">
+                            <i class="fas fa-play-circle"></i> Watch Hint
+                        </button>
+                        {% endif %}
+                    </label>
                     <input type="text" name="name" value="{{ channel.name|default:'' }}"
                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                            placeholder="e.g. Sports News Channel" required>
@@ -19,7 +26,14 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2">Channel ID *</label>
+                    <label class="block text-gray-700 font-semibold mb-2 flex items-center justify-between">
+                        <span>Channel ID *</span>
+                        {% if hints.channel_id %}
+                        <button type="button" onclick="showHintModal('channel_id')" class="text-blue-500 hover:text-blue-700 text-xs font-semibold flex items-center gap-1 focus:outline-none">
+                            <i class="fas fa-play-circle"></i> Watch Hint
+                        </button>
+                        {% endif %}
+                    </label>
                     <input type="text" name="channel_id" value="{{ channel.channel_id|default:'' }}"
                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                            placeholder="@sports_news or -1001234567890" required>
@@ -27,7 +41,14 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2">Topic *</label>
+                    <label class="block text-gray-700 font-semibold mb-2 flex items-center justify-between">
+                        <span>Topic *</span>
+                        {% if hints.topic %}
+                        <button type="button" onclick="showHintModal('topic')" class="text-blue-500 hover:text-blue-700 text-xs font-semibold flex items-center gap-1 focus:outline-none">
+                            <i class="fas fa-play-circle"></i> Watch Hint
+                        </button>
+                        {% endif %}
+                    </label>
                     <select name="topic"
                             class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             required>
@@ -45,7 +66,14 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2">Summary Tone *</label>
+                    <label class="block text-gray-700 font-semibold mb-2 flex items-center justify-between">
+                        <span>Summary Tone *</span>
+                        {% if hints.tone %}
+                        <button type="button" onclick="showHintModal('tone')" class="text-blue-500 hover:text-blue-700 text-xs font-semibold flex items-center gap-1 focus:outline-none">
+                            <i class="fas fa-play-circle"></i> Watch Hint
+                        </button>
+                        {% endif %}
+                    </label>
                     <select name="tone"
                             class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             required>
@@ -104,4 +132,51 @@
             </div>
         {% endif %}
     </div>
+
+    <!-- Hint Video Modal -->
+    <div id="hintModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden">
+            <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-800" id="hintModalTitle">Video Hint</h3>
+                <button type="button" onclick="closeHintModal()" class="text-gray-500 hover:text-gray-800 text-xl font-bold focus:outline-none">&times;</button>
+            </div>
+            <div class="p-6 flex justify-center bg-black">
+                <video id="hintVideoPlayer" class="w-full max-h-[360px] rounded" controls autoplay loop>
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function showHintModal(fieldName) {
+        const player = document.getElementById('hintVideoPlayer');
+        const modal = document.getElementById('hintModal');
+        
+        // Set source
+        player.src = `/hints/video/${fieldName}/`;
+        
+        // Set title based on fieldName
+        const titleMap = {
+            'channel_name': 'Channel Name Hint',
+            'channel_id': 'Channel ID Hint',
+            'topic': 'Topic Hint',
+            'tone': 'Summary Tone Hint'
+        };
+        document.getElementById('hintModalTitle').textContent = titleMap[fieldName] || 'Video Hint';
+        
+        // Show modal
+        modal.classList.remove('hidden');
+        player.load();
+        player.play();
+    }
+
+    function closeHintModal() {
+        const modal = document.getElementById('hintModal');
+        const player = document.getElementById('hintVideoPlayer');
+        player.pause();
+        player.src = '';
+        modal.classList.add('hidden');
+    }
+    </script>
 {% endblock %}

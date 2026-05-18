@@ -15,6 +15,12 @@ urlpatterns = [
     path('superadmin/users/<int:pk>/', views.superadmin_user_detail, name='superadmin_user_detail'),
     path('superadmin/billing/', views.superadmin_billing, name='superadmin_billing'),
     path('superadmin/statistics/', views.superadmin_statistics, name='superadmin_statistics'),
+    path('superadmin/hints/', views.superadmin_hints, name='superadmin_hints'),
+    path('superadmin/hints/upload/', views.superadmin_hint_upload, name='superadmin_hint_upload'),
+    path('superadmin/hints/<int:pk>/delete/', views.superadmin_hint_delete, name='superadmin_hint_delete'),
+
+    # Public Video Serving
+    path('hints/video/<str:field_name>/', views.serve_hint_video, name='serve_hint_video'),
 
     # Articles
     path('articles/', views.article_list, name='article_list'),

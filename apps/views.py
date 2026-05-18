@@ -14,8 +14,9 @@ from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 from django.views.decorators.http import require_POST
 
-from apps.models import Article, TelegramDelivery, TelegramChannel, Summary, Classification, Topic
+from apps.models import Article, TelegramDelivery, TelegramChannel, Summary, Classification, Topic, FieldHint
 from apps.models.user_profile import UserProfile
+from django.http import HttpResponse
 from apps.models.scheduled_send import ScheduledSend
 from apps.permissions import superadmin_required, is_superadmin
 
@@ -80,6 +81,9 @@ def channel_admin_home(request):
         'recent_articles': recent_articles,
     }
     return render(request, 'home.html', context)
+
+
+
 
 
 # ══════════════════════════════════════════════════════════
@@ -604,7 +608,16 @@ def channel_add(request):
 
     topics = Topic.objects.filter(owner__is_staff=True).order_by('name')
     preselected_topic = request.GET.get('topic', '')
-    return render(request, 'channel_form.html', {'topics': topics, 'action': 'Add', 'preselected_topic': preselected_topic})
+    
+    # Pass field hints
+    hints = {h.field_name: True for h in FieldHint.objects.all()}
+    
+    return render(request, 'channel_form.html', {
+        'topics': topics, 
+        'action': 'Add', 
+        'preselected_topic': preselected_topic,
+        'hints': hints
+    })
 
 
 @login_required(login_url='/login/')
@@ -624,7 +637,16 @@ def channel_edit(request, pk):
         messages.success(request, f'Channel "{channel.name}" updated!')
         return redirect('dashboard:channel_list')
     topics = Topic.objects.filter(owner__is_staff=True).order_by('name')
-    return render(request, 'channel_form.html', {'channel': channel, 'topics': topics, 'action': 'Edit'})
+    
+    # Pass field hints
+    hints = {h.field_name: True for h in FieldHint.objects.all()}
+    
+    return render(request, 'channel_form.html', {
+        'channel': channel, 
+        'topics': topics, 
+        'action': 'Edit',
+        'hints': hints
+    })
 
 
 @login_required(login_url='/login/')

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Field Hints{% endblock %}
+{% block page_subtitle %}Manage video hints for channel creation fields{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <div class="bg-white rounded-lg shadow overflow-hidden p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Upload New Hint Video</h3>
+        <form method="post" action="{% url 'dashboard:superadmin_hint_upload' %}" enctype="multipart/form-data" class="flex items-end gap-4">
+            {% csrf_token %}
+            <div class="flex-1">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Form Field</label>
+                <select name="field_name" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500">
+                    <option value="">Select a field...</option>
+                    {% for val, label in available_choices %}
+                    <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex-1">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Video File (.mp4)</label>
+                <input type="file" name="video_file" accept="video/mp4,video/webm" required class="w-full border border-gray-300 rounded-lg px-4 py-1.5 bg-white text-sm">
+            </div>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition h-[42px]">
+                <i class="fas fa-upload mr-2"></i> Upload
+            </button>
+        </form>
+        {% if not available_choices %}
+        <p class="text-sm text-green-600 mt-3"><i class="fas fa-check-circle mr-1"></i> All fields currently have video hints assigned.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="bg-white rounded-lg shadow overflow-hidden">
+    <table class="w-full text-left">
+        <thead class="bg-gray-50 border-b">
+            <tr>
+                <th class="p-4 font-semibold text-gray-700">Field Name</th>
+                <th class="p-4 font-semibold text-gray-700">Content Type</th>
+                <th class="p-4 font-semibold text-gray-700">Video Preview</th>
+                <th class="p-4 font-semibold text-gray-700 w-32 text-center">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for hint in hints %}
+            <tr class="border-b hover:bg-gray-50">
+                <td class="p-4 font-semibold text-blue-600">{{ hint.get_field_name_display }}</td>
+                <td class="p-4 text-gray-500 text-sm">{{ hint.content_type }}</td>
+                <td class="p-4">
+                    <video class="h-16 w-auto rounded border border-gray-200" muted loop onmouseover="this.play()" onmouseout="this.pause()">
+                        <source src="{% url 'dashboard:serve_hint_video' hint.field_name %}" type="{{ hint.content_type }}">
+                        Your browser does not support the video tag.
+                    </video>
+                </td>
+                <td class="p-4 text-center">
+                    <form method="post" action="{% url 'dashboard:superadmin_hint_delete' hint.pk %}" onsubmit="return confirm('Delete this hint video?');">
+                        {% csrf_token %}
+                        <button type="submit" class="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition" title="Delete">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="p-8 text-center text-gray-500">
+                    <i class="fas fa-video-slash text-4xl mb-3"></i><br>
+                    No video hints uploaded yet.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
