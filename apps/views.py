@@ -16,7 +16,7 @@ from django.views.decorators.http import require_POST
 
 from apps.models import Article, TelegramDelivery, TelegramChannel, Summary, Classification, Topic, FieldHint
 from apps.models.user_profile import UserProfile
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from apps.models.scheduled_send import ScheduledSend
 from apps.permissions import superadmin_required, is_superadmin
 
@@ -844,3 +844,192 @@ def check_payments(request):  # ✅ ADDED BACK
         threading.Thread(target=lambda: call_command('check_channel_payments')).start()
         messages.success(request, 'Payment check started!')
     return redirect('dashboard:home')
+
+
+# ══════════════════════════════════════════════════════════
+#  SUMMARY PLANNER VIEWS
+# ══════════════════════════════════════════════════════════
+
+@login_required(login_url='/login/')
+def planner_view(request):
+    channels = TelegramChannel.objects.filter(owner=request.user, is_active=True).select_related('topic').order_by('name')
+    return render(request, 'planner.html', {'channels': channels})
+
+
+@login_required(login_url='/login/')
+def api_planner_events(request):
+    events = []
+    scheduled_sends = ScheduledSend.objects.filter(user=request.user).order_by('scheduled_time')
+    
+    for ss in scheduled_sends:
+        channel_ids = ss.get_channel_ids()
+        summary_ids = ss.get_summary_ids()
+        
+        # Get channel names
+        channels = list(TelegramChannel.objects.filter(pk__in=channel_ids).values_list('name', flat=True))
+        channels_str = ", ".join(channels) if channels else "Unknown Channel"
+        
+        # Get summary snippets
+        summaries = list(Summary.objects.filter(pk__in=summary_ids).select_related('article'))
+        if summaries:
+            snippet = ", ".join([s.article.title[:40] + "..." if s.article and s.article.title else f"Summary #{s.id}" for s in summaries[:2]])
+            if len(summaries) > 2:
+                snippet += f" (+{len(summaries) - 2} more)"
+        else:
+            snippet = f"{len(summary_ids)} summaries"
+            
+        title = f"[{channels_str}] {snippet}"
+        
+        # Determine status/color
+        color = '#10B981' if ss.is_sent else '#3B82F6' # Green if sent, blue if pending
+        
+        events.append({
+            'id': ss.id,
+            'title': title,
+            'start': ss.scheduled_time.isoformat(),
+            'backgroundColor': color,
+            'borderColor': color,
+            'textColor': '#ffffff',
+            'extendedProps': {
+                'channel_names': channels_str,
+                'summary_count': len(summary_ids),
+                'is_sent': ss.is_sent,
+                'scheduled_time': ss.scheduled_time.strftime('%Y-%m-%d %H:%M'),
+                'summaries_details': [
+                    {'id': s.id, 'title': s.article.title if s.article else f"Summary #{s.id}"} 
+                    for s in summaries
+                ]
+            }
+        })
+        
+    return JsonResponse(events, safe=False)
+
+
+@login_required(login_url='/login/')
+def api_unsent_summaries(request):
+    channel_id = request.GET.get('channel_id')
+    if not channel_id:
+        return JsonResponse({'summaries': []})
+        
+    channel = get_object_or_404(TelegramChannel, pk=channel_id, owner=request.user)
+    
+    # Exclude summaries already queued for this channel
+    queued_ids = set()
+    for ss in ScheduledSend.objects.filter(user=request.user, is_sent=False):
+        if channel.id in ss.get_channel_ids():
+            queued_ids.update(ss.get_summary_ids())
+            
+    unsent = Summary.objects.filter(
+        telegram_channel=channel
+    ).exclude(
+        telegram_deliveries__telegram_channel=channel
+    ).exclude(
+        id__in=queued_ids
+    ).select_related('article').order_by('-created_date')
+    
+    data = []
+    for s in unsent:
+        title = s.article.title if s.article and s.article.title else f"Summary #{s.id}"
+        data.append({
+            'id': s.id,
+            'title': title,
+            'date': s.created_date.strftime('%Y-%m-%d %H:%M') if s.created_date else ''
+        })
+        
+    return JsonResponse({'summaries': data})
+
+
+@login_required(login_url='/login/')
+@require_POST
+def schedule_interval_view(request):
+    channel_id = request.POST.get('channel_id')
+    date_str = request.POST.get('date')
+    start_time_str = request.POST.get('start_time')
+    end_time_str = request.POST.get('end_time')
+    mode = request.POST.get('mode', 'manual')
+    
+    if not all([channel_id, date_str, start_time_str, end_time_str]):
+        return JsonResponse({'success': False, 'error': 'All fields are required.'})
+        
+    channel = get_object_or_404(TelegramChannel, pk=channel_id, owner=request.user)
+    
+    try:
+        start_naive = datetime.datetime.strptime(f"{date_str} {start_time_str}", "%Y-%m-%d %H:%M")
+        end_naive = datetime.datetime.strptime(f"{date_str} {end_time_str}", "%Y-%m-%d %H:%M")
+        
+        # Use timezone aware datetimes
+        tz = timezone.get_current_timezone()
+        start_dt = timezone.make_aware(start_naive, tz)
+        end_dt = timezone.make_aware(end_naive, tz)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Invalid date or time format: {e}'})
+        
+    if end_dt <= start_dt:
+        return JsonResponse({'success': False, 'error': 'End time must be after start time.'})
+        
+    # Get selected summaries
+    summaries = []
+    if mode == 'manual':
+        summary_ids = request.POST.getlist('summary_ids')
+        if not summary_ids:
+            return JsonResponse({'success': False, 'error': 'No summaries selected.'})
+        summaries = list(Summary.objects.filter(pk__in=summary_ids, telegram_channel=channel))
+    else:
+        try:
+            auto_count = int(request.POST.get('auto_count', 1))
+        except ValueError:
+            auto_count = 1
+            
+        # Get pending queued ids to exclude
+        queued_ids = set()
+        for ss in ScheduledSend.objects.filter(user=request.user, is_sent=False):
+            if channel.id in ss.get_channel_ids():
+                queued_ids.update(ss.get_summary_ids())
+                
+        summaries = list(Summary.objects.filter(
+            telegram_channel=channel
+        ).exclude(
+            telegram_deliveries__telegram_channel=channel
+        ).exclude(
+            id__in=queued_ids
+        ).order_by('-created_date')[:auto_count])
+        
+    if not summaries:
+        return JsonResponse({'success': False, 'error': 'No available summaries found.'})
+        
+    # Schedule logic
+    n = len(summaries)
+    now = timezone.now()
+    
+    if n == 1:
+        # Single slot: schedule at start_dt
+        slot_time = max(start_dt, now + timedelta(minutes=2))
+        ScheduledSend.objects.create(
+            user=request.user,
+            summary_ids=str(summaries[0].id),
+            channel_ids=str(channel.id),
+            scheduled_time=slot_time
+        )
+    else:
+        duration = end_dt - start_dt
+        step = duration / (n - 1)
+        for i, s in enumerate(summaries):
+            slot_time = start_dt + i * step
+            # Make sure it's in the future
+            slot_time = max(slot_time, now + timedelta(minutes=2 + i))
+            ScheduledSend.objects.create(
+                user=request.user,
+                summary_ids=str(s.id),
+                channel_ids=str(channel.id),
+                scheduled_time=slot_time
+            )
+            
+    return JsonResponse({'success': True, 'message': f'Successfully scheduled {n} summaries!'})
+
+
+@login_required(login_url='/login/')
+@require_POST
+def delete_scheduled_send(request, pk):
+    ss = get_object_or_404(ScheduledSend, pk=pk, user=request.user, is_sent=False)
+    ss.delete()
+    return JsonResponse({'success': True})

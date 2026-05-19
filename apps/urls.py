@@ -52,6 +52,14 @@ urlpatterns = [
     # Deliveries
     path('deliveries/', views.delivery_list, name='delivery_list'),
     path('summaries/schedule-selected/', views.summary_schedule_selected, name='summary_schedule_selected'),
+    
+    # Planner
+    path('planner/', views.planner_view, name='planner'),
+    path('api/planner/events/', views.api_planner_events, name='api_planner_events'),
+    path('api/planner/unsent-summaries/', views.api_unsent_summaries, name='api_unsent_summaries'),
+    path('planner/schedule-interval/', views.schedule_interval_view, name='schedule_interval'),
+    path('planner/delete/<int:pk>/', views.delete_scheduled_send, name='delete_scheduled_send'),
+
     # Commands
     path('run-crawler/', views.run_crawler, name='run_crawler'),
     path('run-summarizer/', views.run_summarizer, name='run_summarizer'),

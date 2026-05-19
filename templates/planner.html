@@ -1,0 +1,452 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Summary Planner{% endblock %}
+{% block page_subtitle %}Visually schedule and distribute your news summaries across custom intervals{% endblock %}
+
+{% block content %}
+<!-- FullCalendar CSS -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+<style>
+    /* Premium FullCalendar Custom Styling */
+    .fc-theme-standard td, .fc-theme-standard th {
+        border-color: #F3F4F6 !important;
+    }
+    .fc-header-toolbar {
+        margin-bottom: 1.5rem !important;
+    }
+    .fc-button-primary {
+        background-color: #3B82F6 !important;
+        border-color: #3B82F6 !important;
+        font-weight: 500 !important;
+        text-transform: capitalize !important;
+        padding: 0.5rem 1rem !important;
+        border-radius: 0.375rem !important;
+        transition: all 0.2s !important;
+    }
+    .fc-button-primary:hover {
+        background-color: #2563EB !important;
+        border-color: #2563EB !important;
+    }
+    .fc-button-active {
+        background-color: #1D4ED8 !important;
+        border-color: #1D4ED8 !important;
+    }
+    .fc-event {
+        cursor: pointer;
+        padding: 4px 8px !important;
+        font-size: 0.85rem !important;
+        border-radius: 6px !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        margin-top: 2px !important;
+        margin-bottom: 2px !important;
+        border: none !important;
+    }
+    .fc-daygrid-day:hover {
+        background-color: #F9FAFB;
+        cursor: pointer;
+    }
+    .fc-col-header-cell {
+        background-color: #F3F4F6;
+        padding: 8px 0 !important;
+        font-weight: 600;
+        color: #4B5563;
+    }
+</style>
+
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <p class="text-gray-600">Visual planning board for automated Telegram dispatches.</p>
+    </div>
+    <button onclick="openScheduleModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg shadow-lg font-medium transition flex items-center">
+        <i class="fas fa-calendar-plus mr-2"></i>Schedule Batch Interval
+    </button>
+</div>
+
+<!-- Calendar Card -->
+<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div id="calendar"></div>
+</div>
+
+<!-- Modal: Schedule Batch Interval -->
+<div id="scheduleModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 transition-opacity duration-300">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+        <button onclick="closeScheduleModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition">
+            <i class="fas fa-times text-xl"></i>
+        </button>
+
+        <h3 class="text-xl font-bold text-gray-900 mb-2 flex items-center">
+            <i class="fas fa-clock text-blue-600 mr-2"></i>Schedule Batch Interval
+        </h3>
+        <p class="text-sm text-gray-500 mb-6">Select a date range window. Summaries will be automatically distributed evenly across the interval.</p>
+
+        <form id="scheduleForm" onsubmit="handleScheduleSubmit(event)">
+            {% csrf_token %}
+            <!-- Channel Selection -->
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Target Telegram Channel</label>
+                <select name="channel_id" id="channelSelect" required onchange="loadUnsentSummaries()" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                    <option value="" disabled selected>Select a channel...</option>
+                    {% for channel in channels %}
+                        <option value="{{ channel.id }}">
+                            {{ channel.name }} (Topic: {{ channel.topic.name }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Date Select -->
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Publishing Day</label>
+                <input type="date" name="date" id="dateInput" required class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
+            </div>
+
+            <!-- Time Window (Interval) -->
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Start Time</label>
+                    <input type="time" name="start_time" required value="08:00" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">End Time</label>
+                    <input type="time" name="end_time" required value="20:00" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
+                </div>
+            </div>
+
+            <!-- Selection Mode: Auto / Manual -->
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Selection Mode</label>
+                <div class="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-lg">
+                    <button type="button" onclick="setMode('auto')" id="modeAutoBtn" class="py-2 text-sm font-medium rounded-md bg-white text-gray-800 shadow-sm transition">
+                        <i class="fas fa-magic mr-1.5"></i>Auto-Schedule
+                    </button>
+                    <button type="button" onclick="setMode('manual')" id="modeManualBtn" class="py-2 text-sm font-medium rounded-md text-gray-600 hover:text-gray-800 transition">
+                        <i class="fas fa-list mr-1.5"></i>Manual Pick
+                    </button>
+                </div>
+                <input type="hidden" name="mode" id="modeInput" value="auto" />
+            </div>
+
+            <!-- Auto Mode Input -->
+            <div id="autoModeContainer" class="mb-5">
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Number of Summaries to Send</label>
+                <input type="number" name="auto_count" value="3" min="1" max="10" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
+                <p class="text-xs text-gray-500 mt-1">We will fetch the newest unsent summaries belonging to the channel's topic and spread them out.</p>
+            </div>
+
+            <!-- Manual Mode Input -->
+            <div id="manualModeContainer" class="mb-5 hidden">
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Select Summaries to Schedule</label>
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 max-h-[180px] overflow-y-auto space-y-2.5" id="summaryListContainer">
+                    <p class="text-sm text-gray-500 italic">Select a channel first to load its available summaries...</p>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="closeScheduleModal()" class="px-5 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-lg transition">
+                    Schedule Batch
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Event Details -->
+<div id="eventModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 transition-opacity duration-300">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+        <button onclick="closeEventModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition">
+            <i class="fas fa-times text-xl"></i>
+        </button>
+
+        <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-info-circle text-blue-600 mr-2"></i>Schedule Details
+        </h3>
+
+        <div class="space-y-4 text-sm text-gray-700">
+            <div>
+                <span class="block text-xs font-semibold uppercase text-gray-400">Target Channel</span>
+                <span class="font-medium text-gray-900" id="eventChannel"></span>
+            </div>
+            <div>
+                <span class="block text-xs font-semibold uppercase text-gray-400">Scheduled Time</span>
+                <span class="font-medium text-gray-900" id="eventTime"></span>
+            </div>
+            <div>
+                <span class="block text-xs font-semibold uppercase text-gray-400">Status</span>
+                <span id="eventStatus" class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold mt-1"></span>
+            </div>
+            <div>
+                <span class="block text-xs font-semibold uppercase text-gray-400 mb-1.5">Scheduled Summaries</span>
+                <ul class="list-disc pl-5 space-y-1 text-gray-800" id="eventSummariesList"></ul>
+            </div>
+        </div>
+
+        <div class="flex justify-end space-x-3 mt-6 border-t pt-4">
+            <button onclick="closeEventModal()" class="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition">
+                Close
+            </button>
+            <form id="deleteEventForm" onsubmit="handleDeleteEvent(event)" class="inline">
+                {% csrf_token %}
+                <button type="submit" id="deleteBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition">
+                    Cancel Schedule
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- FullCalendar & Custom JS -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script>
+    let calendar;
+    let selectedEventId = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek'
+            },
+            editable: false,
+            selectable: true,
+            events: '/api/planner/events/',
+            
+            // Click to schedule on a specific date
+            select: function(info) {
+                openScheduleModal(info.startStr);
+            },
+            
+            // Click on existing event
+            eventClick: function(info) {
+                showEventDetails(info.event);
+            }
+        });
+        
+        calendar.render();
+    });
+
+    // Schedule Modal Controls
+    function openScheduleModal(dateStr = '') {
+        document.getElementById('scheduleForm').reset();
+        setMode('auto');
+        
+        if (dateStr) {
+            document.getElementById('dateInput').value = dateStr;
+        } else {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateInput').value = today;
+        }
+        
+        document.getElementById('summaryListContainer').innerHTML = `
+            <p class="text-sm text-gray-500 italic">Select a channel first to load its available summaries...</p>
+        `;
+        
+        const modal = document.getElementById('scheduleModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeScheduleModal() {
+        const modal = document.getElementById('scheduleModal');
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+    }
+
+    // Set auto/manual scheduling mode
+    function setMode(mode) {
+        document.getElementById('modeInput').value = mode;
+        const autoBtn = document.getElementById('modeAutoBtn');
+        const manualBtn = document.getElementById('modeManualBtn');
+        const autoCont = document.getElementById('autoModeContainer');
+        const manualCont = document.getElementById('manualModeContainer');
+        
+        if (mode === 'auto') {
+            autoBtn.className = "py-2 text-sm font-medium rounded-md bg-white text-gray-800 shadow-sm transition";
+            manualBtn.className = "py-2 text-sm font-medium rounded-md text-gray-600 hover:text-gray-800 transition";
+            autoCont.classList.remove('hidden');
+            manualCont.classList.add('hidden');
+        } else {
+            manualBtn.className = "py-2 text-sm font-medium rounded-md bg-white text-gray-800 shadow-sm transition";
+            autoBtn.className = "py-2 text-sm font-medium rounded-md text-gray-600 hover:text-gray-800 transition";
+            manualCont.classList.remove('hidden');
+            autoCont.classList.add('hidden');
+        }
+    }
+
+    // Load available unsent summaries for selected channel
+    function loadUnsentSummaries() {
+        const channelId = document.getElementById('channelSelect').value;
+        const container = document.getElementById('summaryListContainer');
+        
+        if (!channelId) return;
+        
+        container.innerHTML = `
+            <div class="flex justify-center py-4">
+                <i class="fas fa-spinner fa-spin text-blue-500 text-xl"></i>
+            </div>
+        `;
+        
+        fetch(`/api/planner/unsent-summaries/?channel_id=${channelId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.summaries.length === 0) {
+                    container.innerHTML = `
+                        <p class="text-sm text-gray-500 italic py-2">No available unsent summaries for this channel's topic.</p>
+                    `;
+                    return;
+                }
+                
+                let html = '';
+                data.summaries.forEach(s => {
+                    html += `
+                        <label class="flex items-start space-x-2.5 p-2 hover:bg-white rounded border border-transparent hover:border-gray-200 transition cursor-pointer">
+                            <input type="checkbox" name="summary_ids" value="${s.id}" class="mt-1 rounded text-blue-600 focus:ring-blue-500" />
+                            <div class="text-xs">
+                                <p class="font-medium text-gray-800">${s.title}</p>
+                                <span class="text-[10px] text-gray-400">${s.date}</span>
+                            </div>
+                        </label>
+                    `;
+                });
+                container.innerHTML = html;
+            })
+            .catch(err => {
+                container.innerHTML = `
+                    <p class="text-sm text-red-500 py-2">Error loading summaries. Please try again.</p>
+                `;
+            });
+    }
+
+    // Submit batch interval form
+    function handleScheduleSubmit(event) {
+        event.preventDefault();
+        const form = document.getElementById('scheduleForm');
+        const formData = new FormData(form);
+        
+        fetch('/planner/schedule-interval/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                closeScheduleModal();
+                calendar.refetchEvents();
+                // Custom simple alert banner
+                showToast(data.message, 'success');
+            } else {
+                showToast(data.error || 'Failed to schedule.', 'error');
+            }
+        })
+        .catch(err => {
+            showToast('An unexpected error occurred.', 'error');
+        });
+    }
+
+    // Show Details of Scheduled Send Event
+    function showEventDetails(eventObj) {
+        selectedEventId = eventObj.id;
+        const props = eventObj.extendedProps;
+        
+        document.getElementById('eventChannel').innerText = props.channel_names;
+        document.getElementById('eventTime').innerText = props.scheduled_time;
+        
+        const statusEl = document.getElementById('eventStatus');
+        if (props.is_sent) {
+            statusEl.innerText = "Sent";
+            statusEl.className = "inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold mt-1 bg-green-100 text-green-800";
+            document.getElementById('deleteBtn').classList.add('hidden'); // Cannot cancel sent events
+        } else {
+            statusEl.innerText = "Pending";
+            statusEl.className = "inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold mt-1 bg-blue-100 text-blue-800";
+            document.getElementById('deleteBtn').classList.remove('hidden');
+        }
+        
+        const listContainer = document.getElementById('eventSummariesList');
+        listContainer.innerHTML = '';
+        props.summaries_details.forEach(s => {
+            const li = document.createElement('li');
+            li.className = "font-medium text-gray-800";
+            li.innerText = s.title;
+            listContainer.appendChild(li);
+        });
+        
+        const modal = document.getElementById('eventModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeEventModal() {
+        const modal = document.getElementById('eventModal');
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+        selectedEventId = null;
+    }
+
+    // Delete Event Form
+    function handleDeleteEvent(event) {
+        event.preventDefault();
+        if (!selectedEventId) return;
+        
+        if (!confirm('Are you sure you want to cancel and delete this scheduled publication?')) return;
+        
+        const form = document.getElementById('deleteEventForm');
+        const formData = new FormData(form);
+        
+        fetch(`/planner/delete/${selectedEventId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                closeEventModal();
+                calendar.refetchEvents();
+                showToast('Scheduled publication successfully canceled.', 'success');
+            } else {
+                showToast('Failed to cancel schedule.', 'error');
+            }
+        })
+        .catch(err => {
+            showToast('An unexpected error occurred.', 'error');
+        });
+    }
+
+    // Standard high fidelity clean Toast notifications
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `fixed bottom-5 right-5 px-5 py-3.5 rounded-xl shadow-2xl text-white font-medium z-50 transition transform translate-y-10 opacity-0 duration-300 flex items-center ${
+            type === 'success' ? 'bg-green-600' : 'bg-red-600'
+        }`;
+        toast.innerHTML = `
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2.5 text-lg"></i>
+            <span>${message}</span>
+        `;
+        document.body.appendChild(toast);
+        
+        // Trigger transition
+        setTimeout(() => {
+            toast.classList.remove('translate-y-10', 'opacity-0');
+        }, 50);
+        
+        // Remove toast
+        setTimeout(() => {
+            toast.classList.add('translate-y-10', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+</script>
+{% endblock %}
