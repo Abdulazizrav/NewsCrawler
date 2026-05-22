@@ -433,6 +433,19 @@ def article_delete(request, pk):
 
 
 @login_required(login_url='/login/')
+def serve_article_image(request, article_pk):
+    """Serve the first ArticleImage for an article as JPEG, enforcing ownership."""
+    from apps.models import ArticleImage
+    from django.http import Http404
+    image_obj = ArticleImage.objects.filter(
+        article_id=article_pk, article__owner=request.user
+    ).first()
+    if not image_obj:
+        raise Http404("Image not found")
+    return HttpResponse(bytes(image_obj.image), content_type="image/jpeg")
+
+
+@login_required(login_url='/login/')
 def summary_list(request):
     summaries = Summary.objects.filter(article__owner=request.user).select_related('article').order_by('-created_date')
     from django.core.paginator import Paginator

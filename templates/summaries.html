@@ -22,9 +22,212 @@
     .summary-block::first-line {
         font-weight: 700;
         font-size: 1.05rem;
-        color: #1e40af; /* blue-800 */
+        color: #1e40af;
         line-height: 1.6;
     }
+
+    /* ═══════════════════════════════════════════════
+       TELEGRAM PREVIEW MODAL
+    ═══════════════════════════════════════════════ */
+    #tgPreviewModal {
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        background: rgba(0,0,0,0.65);
+    }
+    .tg-phone {
+        width: 340px;
+        max-height: 90vh;
+        border-radius: 36px;
+        background: #fff;
+        box-shadow: 0 32px 80px rgba(0,0,0,0.45), 0 0 0 8px #1c1c1e;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+        position: relative;
+    }
+    /* status bar */
+    .tg-statusbar {
+        background: #fff;
+        padding: 10px 20px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        font-weight: 600;
+        color: #111;
+    }
+    /* channel header */
+    .tg-header {
+        background: #fff;
+        padding: 8px 14px 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 1px solid #e5e5ea;
+    }
+    .tg-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #2AABEE 0%, #229ED9 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 16px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .tg-header-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .tg-channel-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: #000;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .tg-channel-meta {
+        font-size: 12px;
+        color: #8e8e93;
+        margin-top: 1px;
+    }
+    .tg-back-btn {
+        color: #007AFF;
+        font-size: 22px;
+        cursor: pointer;
+        margin-right: 2px;
+        line-height: 1;
+    }
+    /* chat background */
+    .tg-chat {
+        flex: 1;
+        overflow-y: auto;
+        background: #efeff4;
+        background-image:
+            radial-gradient(circle at 20% 80%, rgba(42,171,238,0.08) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(42,171,238,0.06) 0%, transparent 50%);
+        padding: 12px 10px 16px;
+        scrollbar-width: thin;
+    }
+    /* bubble */
+    .tg-bubble {
+        background: #fff;
+        border-radius: 4px 16px 16px 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.14);
+        overflow: hidden;
+        max-width: 290px;
+        margin: 0 auto 0 0;
+        animation: bubblePop 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes bubblePop {
+        from { transform: scale(0.88) translateY(8px); opacity: 0; }
+        to   { transform: scale(1) translateY(0);    opacity: 1; }
+    }
+    .tg-bubble-img {
+        width: 100%;
+        max-height: 200px;
+        object-fit: cover;
+        display: block;
+    }
+    .tg-bubble-img-skeleton {
+        width: 100%;
+        height: 160px;
+        background: linear-gradient(90deg, #e8e8e8 25%, #f5f5f5 50%, #e8e8e8 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer {
+        0%   { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+    .tg-bubble-body {
+        padding: 10px 12px 6px;
+    }
+    .tg-bubble-text {
+        font-size: 14px;
+        line-height: 1.55;
+        color: #1a1a1a;
+        word-break: break-word;
+    }
+    .tg-bubble-text b {
+        font-weight: 700;
+    }
+    .tg-batafsil {
+        color: #2AABEE;
+        text-decoration: none;
+        font-size: 14px;
+    }
+    .tg-batafsil:hover { text-decoration: underline; }
+    /* footer row */
+    .tg-bubble-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 5px;
+        padding: 2px 10px 8px;
+        font-size: 11px;
+        color: #8e8e93;
+    }
+    .tg-views {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+    }
+    .tg-ticks {
+        color: #2AABEE;
+        font-size: 12px;
+    }
+    /* bottom nav bar placeholder */
+    .tg-bottombar {
+        background: #fff;
+        border-top: 1px solid #e5e5ea;
+        display: flex;
+        align-items: center;
+        padding: 10px 14px 14px;
+        gap: 10px;
+    }
+    .tg-input-fake {
+        flex: 1;
+        background: #f2f2f7;
+        border-radius: 20px;
+        padding: 8px 14px;
+        font-size: 14px;
+        color: #8e8e93;
+    }
+    .tg-send-fake {
+        width: 34px;
+        height: 34px;
+        background: linear-gradient(135deg, #2AABEE, #229ED9);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 14px;
+    }
+    /* close button */
+    .tg-close {
+        position: absolute;
+        top: 12px;
+        right: -46px;
+        width: 34px;
+        height: 34px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #fff;
+        font-size: 18px;
+        transition: background 0.2s;
+    }
+    .tg-close:hover { background: rgba(255,255,255,0.35); }
 </style>
 
 <!-- CHANNEL PICKER MODAL (Send) -->
@@ -147,7 +350,11 @@
 <!-- Hidden data store -->
 <div id="summaryDataStore" class="hidden">
     {% for summary in page_obj %}
-    <div data-id="{{ summary.pk }}">
+    <div data-id="{{ summary.pk }}"
+         data-article-pk="{{ summary.article.pk }}"
+         data-article-url="{{ summary.article.url|default:'' }}"
+         data-channel-name="{% if summary.telegram_channel %}{{ summary.telegram_channel.name }}{% else %}Channel Preview{% endif %}"
+         data-has-image="{% if summary.article.images.exists %}1{% else %}0{% endif %}">
         <span class="s-title">{{ summary.article.title }}</span>
         <span class="s-text">{{ summary.summary_text }}</span>
     </div>
@@ -216,12 +423,21 @@
                         <div class="flex items-start justify-between gap-2">
 
                             <div class="summary-block text-gray-700 text-sm leading-relaxed" style="white-space: pre-wrap;">{{ summary.summary_text }}</div>
-                            <button type="button"
-                                onclick="toggleInlineEdit('{{ summary.pk }}')"
-                                class="flex-shrink-0 opacity-0 group-hover:opacity-100 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-all">
-                                <i class="fas fa-pen text-xs"></i>
-                                Edit
-                            </button>
+                            <div class="flex-shrink-0 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                <button type="button"
+                                    onclick="openTelegramPreview('{{ summary.pk }}')"
+                                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-sky-600 bg-sky-50 border border-sky-200 rounded-lg hover:bg-sky-100 hover:border-sky-300 transition-all"
+                                    title="Telegram preview">
+                                    <i class="fab fa-telegram text-xs"></i>
+                                    Preview
+                                </button>
+                                <button type="button"
+                                    onclick="toggleInlineEdit('{{ summary.pk }}')"
+                                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-all">
+                                    <i class="fas fa-pen text-xs"></i>
+                                    Edit
+                                </button>
+                            </div>
                         </div>
                         <div class="flex items-center mt-2.5 text-xs text-gray-400 space-x-4">
                             {% if summary.telegram_channel %}
@@ -518,12 +734,196 @@
         });
     });
 
+    // ── Telegram Preview ────────────────────────────────────
+    const IMAGE_BASE_URL = "{% url 'dashboard:serve_article_image' article_pk=0 %}".replace('/0/image/', '/');
+
+    function openTelegramPreview(summaryId) {
+        const el = document.querySelector(`#summaryDataStore [data-id="${summaryId}"]`);
+        if (!el) return;
+
+        const rawText    = el.querySelector('.s-text').textContent.trim();
+        const articlePk  = el.dataset.articlePk;
+        const articleUrl = el.dataset.articleUrl || '#';
+        const channelName = el.dataset.channelName || 'Channel Preview';
+        const hasImage   = el.dataset.hasImage === '1';
+
+        // ── Parse text: bold title + body
+        const lines = rawText.split('\n');
+        const titleLine = lines[0].trim();
+        const bodyLines = lines.slice(1);
+
+        // Convert body lines: preserve bullets, blank lines
+        const bodyHtml = bodyLines
+            .map(l => {
+                if (l.trim() === '') return '<br>';
+                return escapeHtml(l);
+            })
+            .join('<br>');
+
+        const captionHtml =
+            `<b>${escapeHtml(titleLine)}</b>` +
+            (bodyHtml ? '<br><br>' + bodyHtml : '') +
+            `<br><br><a class="tg-batafsil" href="${escapeHtml(articleUrl)}" target="_blank" rel="noopener">Batafsil</a>`;
+
+        // ── Populate modal
+        document.getElementById('tgChannelName').textContent = channelName;
+        document.getElementById('tgChannelInitial').textContent = channelName.charAt(0).toUpperCase();
+        document.getElementById('tgBubbleText').innerHTML = captionHtml;
+
+        // ── Time stamp
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const timeStr = `${hh}:${mm}`;
+        document.getElementById('tgTimestamp').textContent = timeStr;
+        document.getElementById('tgTimeFooter').textContent = timeStr;
+
+        // ── Image
+        const imgWrap = document.getElementById('tgImageWrap');
+        const imgEl   = document.getElementById('tgBubbleImg');
+        if (hasImage && articlePk) {
+            imgWrap.style.display = 'block';
+            imgEl.src = '';
+            // Show skeleton while loading
+            imgEl.style.display = 'none';
+            document.getElementById('tgImgSkeleton').style.display = 'block';
+            imgEl.onload = () => {
+                document.getElementById('tgImgSkeleton').style.display = 'none';
+                imgEl.style.display = 'block';
+            };
+            imgEl.onerror = () => {
+                imgWrap.style.display = 'none';
+            };
+            imgEl.src = `${IMAGE_BASE_URL}${articlePk}/image/`;
+        } else {
+            imgWrap.style.display = 'none';
+        }
+
+        showModal('tgPreviewModal');
+    }
+
+    function escapeHtml(str) {
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function closeTgPreview() { hideModal('tgPreviewModal'); }
+
+    document.getElementById('tgPreviewModal').addEventListener('click', function(e) {
+        if (e.target === this) closeTgPreview();
+    });
+
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
             hideModal('channelModal');
             hideModal('scheduleModal');
+            hideModal('tgPreviewModal');
         }
     });
 </script>
+
+<!-- TELEGRAM PREVIEW MODAL -->
+<div id="tgPreviewModal" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <div style="position:relative; display:flex; align-items:center;">
+
+        <!-- Phone frame -->
+        <div class="tg-phone">
+
+            <!-- Status bar -->
+            <div class="tg-statusbar">
+                <span id="tgTimestamp" style="font-size:13px;font-weight:600;">10:24</span>
+                <span style="display:flex;align-items:center;gap:5px;">
+                    <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+                        <rect x="0" y="4" width="3" height="8" rx="1" fill="#111"/>
+                        <rect x="4.5" y="2.5" width="3" height="9.5" rx="1" fill="#111"/>
+                        <rect x="9" y="0.5" width="3" height="11.5" rx="1" fill="#111"/>
+                        <rect x="13.5" y="0" width="2.5" height="12" rx="1" fill="#ccc"/>
+                    </svg>
+                    <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
+                        <path d="M9 2.5C11.5 2.5 13.7 3.7 15.1 5.6L16.5 4.2C14.7 1.9 12 0.5 9 0.5C6 0.5 3.3 1.9 1.5 4.2L2.9 5.6C4.3 3.7 6.5 2.5 9 2.5Z" fill="#111"/>
+                        <path d="M9 6.5C10.4 6.5 11.7 7.1 12.6 8.1L14 6.7C12.7 5.4 11 4.5 9 4.5C7 4.5 5.3 5.4 4 6.7L5.4 8.1C6.3 7.1 7.6 6.5 9 6.5Z" fill="#111"/>
+                        <circle cx="9" cy="11" r="1.5" fill="#111"/>
+                    </svg>
+                    <span style="font-size:13px;font-weight:600;">100%</span>
+                    <svg width="26" height="13" viewBox="0 0 26 13" fill="none">
+                        <rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="#111" stroke-opacity="0.35"/>
+                        <rect x="2" y="2" width="18" height="9" rx="2" fill="#111"/>
+                        <path d="M23.5 4.5V8.5C24.3 8.2 25 7.4 25 6.5C25 5.6 24.3 4.8 23.5 4.5Z" fill="#111" fill-opacity="0.4"/>
+                    </svg>
+                </span>
+            </div>
+
+            <!-- Channel header -->
+            <div class="tg-header">
+                <span class="tg-back-btn">&#8249;</span>
+                <div class="tg-avatar" id="tgChannelInitial">N</div>
+                <div class="tg-header-info">
+                    <div class="tg-channel-name" id="tgChannelName">Channel Name</div>
+                    <div class="tg-channel-meta">channel</div>
+                </div>
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" style="color:#007AFF;margin-left:auto;">
+                    <circle cx="12" cy="12" r="10" stroke="#007AFF" stroke-width="1.8"/>
+                    <path d="M8 12h8M12 8l4 4-4 4" stroke="#007AFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+
+            <!-- Chat area -->
+            <div class="tg-chat">
+
+                <!-- Date chip -->
+                <div style="text-align:center;margin-bottom:12px;">
+                    <span style="display:inline-block;background:rgba(0,0,0,0.22);color:#fff;font-size:11px;padding:3px 10px;border-radius:12px;">Today</span>
+                </div>
+
+                <!-- Message bubble -->
+                <div class="tg-bubble">
+                    <!-- Image -->
+                    <div id="tgImageWrap" style="display:none;">
+                        <div id="tgImgSkeleton" class="tg-bubble-img-skeleton"></div>
+                        <img id="tgBubbleImg" class="tg-bubble-img" alt="Article image">
+                    </div>
+                    <!-- Text body -->
+                    <div class="tg-bubble-body">
+                        <div class="tg-bubble-text" id="tgBubbleText"></div>
+                    </div>
+                    <!-- Footer: views + time + ticks -->
+                    <div class="tg-bubble-footer">
+                        <span class="tg-views">
+                            <svg width="13" height="10" viewBox="0 0 24 18" fill="none">
+                                <path d="M12 3C7 3 2.7 6.6 1 12c1.7 5.4 6 9 11 9s9.3-3.6 11-9c-1.7-5.4-6-9-11-9z" stroke="#8e8e93" stroke-width="2" fill="none"/>
+                                <circle cx="12" cy="12" r="4" stroke="#8e8e93" stroke-width="2" fill="none"/>
+                            </svg>
+                            1.2K
+                        </span>
+                        <span id="tgTimeFooter" style="margin-left:4px;">10:24</span>
+                        <span class="tg-ticks">&#10003;&#10003;</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Fake input bar -->
+            <div class="tg-bottombar">
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="#c7c7cc" stroke-width="1.8"/>
+                    <path d="M12 8v8M8 12h8" stroke="#c7c7cc" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <div class="tg-input-fake">Message…</div>
+                <div class="tg-send-fake">
+                    <i class="fas fa-paper-plane" style="font-size:13px;margin-left:1px;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Close button outside the phone -->
+        <div class="tg-close" onclick="closeTgPreview()" title="Close">
+            <i class="fas fa-times"></i>
+        </div>
+
+    </div>
+</div>
 
 {% endblock %}

@@ -26,6 +26,7 @@ urlpatterns = [
     path('articles/', views.article_list, name='article_list'),
     path('articles/<int:pk>/', views.article_detail, name='article_detail'),
     path('articles/delete/<int:pk>/', views.article_delete, name='article_delete'),
+    path('articles/<int:article_pk>/image/', views.serve_article_image, name='serve_article_image'),
 
     # Summaries
     path('summaries/', views.summary_list, name='summary_list'),
