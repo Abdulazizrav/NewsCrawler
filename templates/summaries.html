@@ -22,8 +22,68 @@
     .summary-block::first-line {
         font-weight: 700;
         font-size: 1.05rem;
-        color: #1e40af;
+        color: var(--primary-700);
         line-height: 1.6;
+    }
+
+    /* ═══════════════════════════════════════════════
+       MODALS STYLING (DARK THEME)
+    ═══════════════════════════════════════════════ */
+    .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.72);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .modal-backdrop.flex {
+        display: flex;
+    }
+    .modal-backdrop.hidden {
+        display: none;
+    }
+    .modal-card {
+        background: var(--surface);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--r-xl);
+        box-shadow: var(--shadow-lg);
+        width: 100%;
+        max-width: 520px;
+        overflow: hidden;
+        animation: rise 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+    }
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 22px;
+        border-bottom: 1px solid var(--border);
+    }
+    .modal-header h2 {
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: var(--text);
+    }
+    .modal-body {
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding: 14px 22px;
+        border-top: 1px solid var(--border);
+        background: var(--bg-tint);
     }
 
     /* ═══════════════════════════════════════════════
@@ -229,119 +289,106 @@
     }
     .tg-close:hover { background: rgba(255,255,255,0.35); }
 </style>
-
 <!-- CHANNEL PICKER MODAL (Send) -->
-<div id="channelModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
-        <div class="flex items-center justify-between p-5 border-b">
+<div id="channelModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+        <div class="modal-header">
             <div>
-                <h2 class="text-lg font-semibold text-gray-800">Kanallarni Tanlang</h2>
-                <p class="text-sm text-gray-500 mt-0.5">
-                    Qaysi kanallarga yuborish kerakligini tanlang
-                    <span id="channelModalCount" class="font-semibold text-blue-600"></span>
+                <h2>📢 Kanallarni Tanlang</h2>
+                <p style="font-size:12px;color:var(--text-faint);margin-top:2px;">
+                    Qaysi kanallarga yuborish kerakligini tanlang (<span id="channelModalCount" style="color:var(--primary-700);font-weight:600;"></span>)
                 </p>
             </div>
-            <button onclick="closeChannelModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            <button onclick="closeChannelModal()" style="font-size:22px;color:var(--text-faint);line-height:1;">&times;</button>
         </div>
-        <div class="p-5">
-            <label class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer mb-3 hover:bg-gray-100 transition-colors">
+        <div class="modal-body">
+            <label class="p-3 rounded-lg cursor-pointer hover:bg-surface-2 transition-colors" style="display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);width:100%;">
                 <input type="checkbox" id="selectAllChannels" onchange="toggleAllChannels(this)"
-                    class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                <span class="text-sm font-semibold text-gray-700">Barcha Kanallarni Tanlash</span>
+                    style="width:16px;height:16px;cursor:pointer;">
+                <span style="font-size:13.5px;font-weight:600;color:var(--text)">Barcha Kanallarni Tanlash</span>
             </label>
-            <div class="space-y-2 max-h-72 overflow-y-auto pr-1" id="channelList">
+            <div style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;padding-right:4px;">
                 {% for channel in user_channels %}
-                <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors channel-option">
+                <label class="p-3 rounded-lg border border-border cursor-pointer hover:bg-surface-2 transition-colors" style="display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);width:100%;">
                     <input type="checkbox" name="channel_ids" value="{{ channel.pk }}"
                         onchange="updateChannelSelectAll()"
-                        class="channel-checkbox w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-800 truncate">{{ channel.name }}</p>
-                        <p class="text-xs text-gray-400 truncate">
+                        style="width:16px;height:16px;cursor:pointer;" class="channel-checkbox">
+                    <div style="flex:1;min-width:0;">
+                        <p style="font-size:13.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ channel.name }}</p>
+                        <p style="font-size:11.5px;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                             {{ channel.topic.name }} &nbsp;·&nbsp; Balans: ${{ channel.balance }}
                         </p>
                     </div>
                     {% if not channel.is_active %}
-                    <span class="text-xs text-red-500 font-medium bg-red-50 px-2 py-0.5 rounded-full">Nofaol</span>
+                    <span class="pill pill-danger" style="font-size:10.5px;padding:2px 7px;">Nofaol</span>
                     {% endif %}
                 </label>
                 {% empty %}
-                <p class="text-sm text-gray-500 text-center py-4">Faol kanallar topilmadi.</p>
+                <p style="font-size:13px;color:var(--text-faint);text-align:center;padding:20px;width:100%;">Faol kanallar topilmadi.</p>
                 {% endfor %}
             </div>
         </div>
-        <div class="flex justify-end gap-3 p-5 border-t bg-gray-50 rounded-b-xl">
-            <button type="button" onclick="closeChannelModal()"
-                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+        <div class="modal-footer">
+            <button type="button" onclick="closeChannelModal()" class="btn btn-ghost">
                 Bekor qilish
             </button>
-            <button type="button" onclick="submitSend()"
-                id="confirmSendBtn"
-                class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                disabled>
-                <i class="fas fa-paper-plane text-xs"></i>
-                Tasdiqlash & Yuborish
+            <button type="button" onclick="submitSend()" id="confirmSendBtn" class="btn btn-primary" disabled>
+                <i class="fas fa-paper-plane"></i> Tasdiqlash & Yuborish
             </button>
         </div>
     </div>
 </div>
 
 <!-- SCHEDULE MODAL -->
-<div id="scheduleModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
-        <div class="flex items-center justify-between p-5 border-b">
+<div id="scheduleModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+        <div class="modal-header">
             <div>
-                <h2 class="text-lg font-semibold text-gray-800">📅 Vaqtni Rejalashtirish</h2>
-                <p class="text-sm text-gray-500 mt-0.5">
-                    <span id="scheduleModalCount" class="font-semibold text-purple-600"></span> ni keyin yuborish uchun rejalashtirish
+                <h2>📅 Vaqtni Rejalashtirish</h2>
+                <p style="font-size:12px;color:var(--text-faint);margin-top:2px;">
+                    <span id="scheduleModalCount" style="color:var(--primary-700);font-weight:600;"></span> ni keyin yuborish uchun rejalashtirish
                 </p>
             </div>
-            <button onclick="closeScheduleModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            <button onclick="closeScheduleModal()" style="font-size:22px;color:var(--text-faint);line-height:1;">&times;</button>
         </div>
-        <div class="p-5 space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Kanallar</label>
-                <label class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer mb-2 hover:bg-gray-100 transition-colors">
+        <div class="modal-body">
+            <div class="col gap-8">
+                <label style="font-size:13px;font-weight:600;color:var(--text);">Kanallar</label>
+                <label class="p-3 rounded-lg cursor-pointer hover:bg-surface-2 transition-colors" style="display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;width:100%;">
                     <input type="checkbox" id="scheduleSelectAllChannels" onchange="toggleAllScheduleChannels(this)"
-                        class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
-                    <span class="text-sm font-semibold text-gray-700">Barcha Kanallarni Tanlash</span>
+                        style="width:16px;height:16px;cursor:pointer;">
+                    <span style="font-size:13.5px;font-weight:600;color:var(--text)">Barcha Kanallarni Tanlash</span>
                 </label>
-                <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <div style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;padding-right:4px;">
                     {% for channel in user_channels %}
-                    <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-purple-50 hover:border-purple-300 transition-colors">
+                    <label class="p-3 rounded-lg border border-border cursor-pointer hover:bg-surface-2 transition-colors" style="display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);width:100%;">
                         <input type="checkbox" value="{{ channel.pk }}"
                             onchange="updateScheduleChannelSelectAll()"
-                            class="schedule-channel-checkbox w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-800 truncate">{{ channel.name }}</p>
-                            <p class="text-xs text-gray-400 truncate">
+                            style="width:16px;height:16px;cursor:pointer;" class="schedule-channel-checkbox">
+                        <div style="flex:1;min-width:0;">
+                            <p style="font-size:13.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ channel.name }}</p>
+                            <p style="font-size:11.5px;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                                 {{ channel.topic.name }} &nbsp;·&nbsp; Balans: ${{ channel.balance }}
                             </p>
                         </div>
                     </label>
                     {% empty %}
-                    <p class="text-sm text-gray-500 text-center py-4">Faol kanallar topilmadi.</p>
+                    <p style="font-size:13px;color:var(--text-faint);text-align:center;padding:20px;width:100%;">Faol kanallar topilmadi.</p>
                     {% endfor %}
                 </div>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Yuborish Vaqti</label>
-                <input type="datetime-local" id="scheduleDateTime" step="60"
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                <p class="text-xs text-gray-400 mt-1">Must be at least 1 minute in the future.</p>
+            <div class="field">
+                <label>Yuborish Vaqti</label>
+                <input type="datetime-local" id="scheduleDateTime" step="60" class="input">
+                <p style="font-size:11px;color:var(--text-faint);margin-top:2px;">Must be at least 1 minute in the future.</p>
             </div>
         </div>
-        <div class="flex justify-end gap-3 p-5 border-t bg-gray-50 rounded-b-xl">
-            <button type="button" onclick="closeScheduleModal()"
-                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+        <div class="modal-footer">
+            <button type="button" onclick="closeScheduleModal()" class="btn btn-ghost">
                 Bekor qilish
             </button>
-            <button type="button" onclick="submitSchedule()"
-                id="confirmScheduleBtn"
-                class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                disabled>
-                <i class="fas fa-clock text-xs"></i>
-                Tasdiqlash & Rejalashtirish
+            <button type="button" onclick="submitSchedule()" id="confirmScheduleBtn" class="btn btn-primary" disabled>
+                <i class="fas fa-clock"></i> Tasdiqlash & Rejalashtirish
             </button>
         </div>
     </div>
@@ -377,96 +424,84 @@
 </form>
 
 <!-- Main content -->
-<div class="bg-white rounded-lg shadow">
+<div class="card rise">
 
     <!-- Toolbar -->
-    <div class="p-4 bg-gray-50 border-b flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-4">
-            <label class="flex items-center gap-2 cursor-pointer select-none text-sm font-medium text-gray-700">
+    <div class="card-header" style="flex-wrap: wrap; gap: 12px; padding: 14px 20px;">
+        <div style="display:flex; align-items:center; gap:16px;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; font-size:13.5px; font-weight:600; color:var(--text-muted);">
                 <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"
-                    class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                    style="width:16px;height:16px;cursor:pointer;">
                 Barchasini Tanlash
             </label>
-            <span class="text-sm text-gray-500">
-                Total: <span class="font-semibold text-gray-800">{{ page_obj.paginator.count }}</span>
-                &nbsp;|&nbsp; Selected: <span id="selectedCount" class="font-semibold text-blue-600">0</span>
+            <span style="font-size:13px; color:var(--text-faint);">
+                Jami: <span style="font-weight:600; color:var(--text);">{{ page_obj.paginator.count }}</span>
+                &nbsp;|&nbsp; Tanlangan: <span id="selectedCount" style="font-weight:600; color:var(--primary-700);">0</span>
             </span>
         </div>
-        <div class="flex items-center gap-2">
-            <button type="button" id="scheduleBtn" onclick="openScheduleModal()"
-                class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-700 bg-white border border-purple-300 rounded-lg hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                disabled>
-                <i class="fas fa-clock text-xs"></i>
-                Rejalashtirish
+        <div style="display:flex; align-items:center; gap:8px;">
+            <button type="button" id="scheduleBtn" onclick="openScheduleModal()" class="btn btn-sm btn-ghost" disabled>
+                <i class="fas fa-clock"></i> Rejalashtirish
             </button>
-            <button type="button" id="sendBtn" onclick="openChannelModal()"
-                class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                disabled>
-                <i class="fas fa-paper-plane text-xs"></i>
-                Tanlanganlarni Yuborish
+            <button type="button" id="sendBtn" onclick="openChannelModal()" class="btn btn-sm btn-primary" disabled>
+                <i class="fas fa-paper-plane"></i> Tanlanganlarni Yuborish
             </button>
         </div>
     </div>
 
     <!-- Summary List -->
-    <div class="divide-y">
+    <div style="display:flex; flex-direction:column;">
         {% for summary in page_obj %}
-        <div class="p-5 hover:bg-gray-50 transition-colors group">
-            <div class="flex items-start gap-3">
-                <div class="mt-1 flex-shrink-0">
+        <div style="padding:20px; border-bottom:1px solid var(--border); transition:background .15s;" class="sugrow group">
+            <div style="display:flex; align-items:flex-start; gap:12px;">
+                <div style="flex-shrink:0; margin-top:3px;">
                     <input type="checkbox" value="{{ summary.pk }}"
                         onchange="updateSelectedCount()"
-                        class="summary-checkbox w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        style="width:16px;height:16px;cursor:pointer;" class="summary-checkbox">
                 </div>
-                <div class="flex-1 min-w-0">
+                <div style="flex:1; min-width:0;">
                     <div id="viewBlock-{{ summary.pk }}">
-                        <div class="flex items-start justify-between gap-2">
-
-                            <div class="summary-block text-gray-700 text-sm leading-relaxed" style="white-space: pre-wrap;">{{ summary.summary_text }}</div>
-                            <div class="flex-shrink-0 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px;">
+                            <div class="summary-block" style="white-space: pre-wrap; font-size:14px; line-height:1.6; color:var(--text-muted);">{{ summary.summary_text }}</div>
+                            <div style="flex-shrink:0; display:flex; gap:8px; opacity:0; transition:opacity .15s;" class="group-hover:opacity-100">
                                 <button type="button"
                                     onclick="openTelegramPreview('{{ summary.pk }}')"
-                                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-sky-600 bg-sky-50 border border-sky-200 rounded-lg hover:bg-sky-100 hover:border-sky-300 transition-all"
+                                    class="btn btn-sm btn-subtle" style="padding: 5px 10px; font-size:12px;"
                                     title="Telegram preview">
-                                    <i class="fab fa-telegram text-xs"></i>
-                                    Preview
+                                    <i class="fab fa-telegram"></i> Preview
                                 </button>
                                 <button type="button"
                                     onclick="toggleInlineEdit('{{ summary.pk }}')"
-                                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-all">
-                                    <i class="fas fa-pen text-xs"></i>
-                                    Tahrirlash
+                                    class="btn btn-sm btn-ghost" style="padding: 5px 10px; font-size:12px;">
+                                    <i class="fas fa-pen"></i> Tahrirlash
                                 </button>
                             </div>
                         </div>
-                        <div class="flex items-center mt-2.5 text-xs text-gray-400 space-x-4">
+                        <div style="display:flex; align-items:center; gap:16px; margin-top:12px; font-size:12px; color:var(--text-faint);">
                             {% if summary.telegram_channel %}
-                                <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+                                <span class="pill pill-primary">
                                     <i class="fas fa-paper-plane mr-1"></i>{{ summary.telegram_channel.name }} ({{ summary.telegram_channel.tone }})
                                 </span>
                             {% endif %}
-                            <span><i class="fas fa-globe mr-1"></i>{{ summary.article.source }}</span>
-                            <span><i class="fas fa-clock mr-1"></i>{{ summary.created_date|timesince }} oldin</span>
-                            <a href="{% url 'dashboard:article_detail' summary.article.pk %}" class="text-blue-500 hover:underline">Originalini ko'rish</a>
+                            <span><i class="fas fa-globe"></i> {{ summary.article.source }}</span>
+                            <span><i class="far fa-clock"></i> {{ summary.created_date|timesince }} oldin</span>
+                            <a href="{% url 'dashboard:article_detail' summary.article.pk %}" style="color:var(--primary-700); hover:text-decoration:underline;">Originalini ko'rish</a>
                         </div>
                     </div>
 
                     <!-- Inline Edit Form -->
-                    <form method="POST" action="{% url 'dashboard:summary_edit' summary.pk %}" id="editBlock-{{ summary.pk }}" class="hidden bg-gray-50 p-4 rounded-lg border border-gray-200 mt-2">
+                    <form method="POST" action="{% url 'dashboard:summary_edit' summary.pk %}" id="editBlock-{{ summary.pk }}" style="margin-top:12px; display:none; flex-direction:column; gap:12px; background:var(--surface-2); border:1px solid var(--border); padding:16px; border-radius:var(--r);">
                         {% csrf_token %}
                         <input type="hidden" name="page" value="{{ page_obj.number }}">
-                        <div class="mb-3">
-                            <label class="block text-xs font-medium text-gray-600 mb-1">To'liq tarjima qilingan blokni tahrirlash (birinchi qatordagi sarlavha)</label>
-                            <textarea name="summary_text" rows="12"
-                                class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y bg-white">{{ summary.summary_text }}</textarea>
+                        <div class="field">
+                            <label>To'liq tarjima qilingan blokni tahrirlash (birinchi qatordagi sarlavha)</label>
+                            <textarea name="summary_text" rows="12" class="textarea">{{ summary.summary_text }}</textarea>
                         </div>
-                        <div class="flex justify-end gap-2">
-                            <button type="button" onclick="toggleInlineEdit('{{ summary.pk }}')"
-                                class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-100">
+                        <div style="display:flex; justify-content:flex-end; gap:8px;">
+                            <button type="button" onclick="toggleInlineEdit('{{ summary.pk }}')" class="btn btn-sm btn-ghost">
                                 Bekor qilish
                             </button>
-                            <button type="submit"
-                                class="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                            <button type="submit" class="btn btn-sm btn-primary">
                                 Saqlash
                             </button>
                         </div>
@@ -475,7 +510,7 @@
             </div>
         </div>
         {% empty %}
-        <div class="p-12 text-center text-gray-400">
+        <div class="empty-state">
             <i class="fas fa-inbox text-5xl mb-3 block opacity-40"></i>
             <p class="text-base font-medium">Yangiliklar mavjud emas</p>
         </div>
@@ -484,29 +519,27 @@
 
     <!-- Pagination -->
     {% if page_obj.has_other_pages %}
-    <div class="p-4 bg-gray-50 border-t flex items-center justify-center gap-1 flex-wrap">
+    <div style="padding: 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; background: var(--bg-tint);">
         {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}"
-            class="px-3 py-2 text-sm bg-white border rounded-lg hover:bg-gray-100 transition-colors">
+        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm btn-ghost">
             &larr;
         </a>
         {% endif %}
 
         {% for num in page_obj.paginator.page_range %}
             {% if page_obj.number == num %}
-            <span class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg font-medium">{{ num }}</span>
+            <span class="btn btn-sm btn-primary">{{ num }}</span>
             {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-            <a href="?page={{ num }}" class="px-3 py-2 text-sm bg-white border rounded-lg hover:bg-gray-100 transition-colors">{{ num }}</a>
+            <a href="?page={{ num }}" class="btn btn-sm btn-ghost">{{ num }}</a>
             {% elif num == 1 or num == page_obj.paginator.num_pages %}
-            <a href="?page={{ num }}" class="px-3 py-2 text-sm bg-white border rounded-lg hover:bg-gray-100 transition-colors">{{ num }}</a>
+            <a href="?page={{ num }}" class="btn btn-sm btn-ghost">{{ num }}</a>
             {% elif num == page_obj.number|add:'-4' or num == page_obj.number|add:'4' %}
-            <span class="px-2 py-2 text-sm text-gray-400">...</span>
+            <span style="color: var(--text-faint); padding: 0 4px;">...</span>
             {% endif %}
         {% endfor %}
 
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}"
-            class="px-3 py-2 text-sm bg-white border rounded-lg hover:bg-gray-100 transition-colors">
+        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm btn-ghost">
             &rarr;
         </a>
         {% endif %}
@@ -559,14 +592,14 @@
         const viewBlock = document.getElementById('viewBlock-' + summaryId);
         const editBlock = document.getElementById('editBlock-' + summaryId);
         
-        if (viewBlock.classList.contains('hidden')) {
-            // Cancel edit
-            viewBlock.classList.remove('hidden');
-            editBlock.classList.add('hidden');
-        } else {
+        if (editBlock.style.display === 'none' || editBlock.style.display === '') {
             // Show edit
-            viewBlock.classList.add('hidden');
-            editBlock.classList.remove('hidden');
+            viewBlock.style.display = 'none';
+            editBlock.style.display = 'flex';
+        } else {
+            // Cancel edit
+            viewBlock.style.display = 'block';
+            editBlock.style.display = 'none';
         }
     }
 
@@ -825,7 +858,7 @@
 </script>
 
 <!-- TELEGRAM PREVIEW MODAL -->
-<div id="tgPreviewModal" class="fixed inset-0 z-50 hidden items-center justify-center">
+<div id="tgPreviewModal" class="modal-backdrop hidden">
     <div style="position:relative; display:flex; align-items:center;">
 
         <!-- Phone frame -->
