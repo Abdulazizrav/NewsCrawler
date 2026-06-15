@@ -1,182 +1,168 @@
 {% extends 'base.html' %}
 
 {% block page_title %}{{ action }} Channel{% endblock %}
-{% block page_subtitle %}{% if action == 'Add' %}Create a new Telegram channel{% else %}Update channel information
-{% endif %}{% endblock %}
+{% block page_subtitle %}
+  {% if action == 'Add' %}Create a new Telegram channel{% else %}Update channel information{% endif %}
+{% endblock %}
 
 {% block content %}
-    <div class="max-w-2xl mx-auto">
-        <div class="bg-white rounded-lg shadow p-6">
-            <form method="post">
-                {% csrf_token %}
+<div style="max-width: 680px;" class="rise">
+  <div class="card card-pad">
+    <form method="post" style="display: flex; flex-direction: column; gap: 18px;">
+      {% csrf_token %}
 
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2 flex items-center justify-between">
-                        <span>Channel Name *</span>
-                        {% if hints.channel_name %}
-                        <button type="button" onclick="showHintModal('channel_name')" class="text-blue-500 hover:text-blue-700 text-xs font-semibold flex items-center gap-1 focus:outline-none">
-                            <i class="fas fa-play-circle"></i> Watch Hint
-                        </button>
-                        {% endif %}
-                    </label>
-                    <input type="text" name="name" value="{{ channel.name|default:'' }}"
-                           class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="e.g. Sports News Channel" required>
-                    <p class="text-sm text-gray-500 mt-1">The display name for this channel</p>
-                </div>
+      <div class="field">
+        <label style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <span>Channel Name *</span>
+          {% if hints.channel_name %}
+            <button type="button" onclick="showHintModal('channel_name')" style="color: var(--primary-700); font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; border: none; background: none; cursor: pointer; padding: 0;">
+              <i class="fas fa-play-circle"></i> Watch Hint
+            </button>
+          {% endif %}
+        </label>
+        <input type="text" name="name" value="{{ channel.name|default:'' }}" class="input" placeholder="e.g. Sports News Channel" required>
+        <span class="hint">The display name for this channel</span>
+      </div>
 
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2 flex items-center justify-between">
-                        <span>Channel ID *</span>
-                        {% if hints.channel_id %}
-                        <button type="button" onclick="showHintModal('channel_id')" class="text-blue-500 hover:text-blue-700 text-xs font-semibold flex items-center gap-1 focus:outline-none">
-                            <i class="fas fa-play-circle"></i> Watch Hint
-                        </button>
-                        {% endif %}
-                    </label>
-                    <input type="text" name="channel_id" value="{{ channel.channel_id|default:'' }}"
-                           class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="@sports_news or -1001234567890" required>
-                    <p class="text-sm text-gray-500 mt-1">Telegram channel username or ID</p>
-                </div>
+      <div class="field">
+        <label style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <span>Channel ID *</span>
+          {% if hints.channel_id %}
+            <button type="button" onclick="showHintModal('channel_id')" style="color: var(--primary-700); font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; border: none; background: none; cursor: pointer; padding: 0;">
+              <i class="fas fa-play-circle"></i> Watch Hint
+            </button>
+          {% endif %}
+        </label>
+        <input type="text" name="channel_id" value="{{ channel.channel_id|default:'' }}" class="input" placeholder="@sports_news or -1001234567890" required>
+        <span class="hint">Telegram channel username or ID</span>
+      </div>
 
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2 flex items-center justify-between">
-                        <span>Topic *</span>
-                        {% if hints.topic %}
-                        <button type="button" onclick="showHintModal('topic')" class="text-blue-500 hover:text-blue-700 text-xs font-semibold flex items-center gap-1 focus:outline-none">
-                            <i class="fas fa-play-circle"></i> Watch Hint
-                        </button>
-                        {% endif %}
-                    </label>
-                    <select name="topic"
-                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            required>
-                        <option value="">Select Topic</option>
-                        {% for topic in topics %}
-                            <option value="{{ topic.pk }}"
-                                    {% if channel.topic_id == topic.pk %}selected
-                                    {% elif preselected_topic == topic.pk|stringformat:"s" %}selected
-                                    {% endif %}>
-                                {{ topic.name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    <p class="text-sm text-gray-500 mt-1">Which topic should this channel receive?</p>
-                </div>
+      <div class="field">
+        <label style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <span>Topic *</span>
+          {% if hints.topic %}
+            <button type="button" onclick="showHintModal('topic')" style="color: var(--primary-700); font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; border: none; background: none; cursor: pointer; padding: 0;">
+              <i class="fas fa-play-circle"></i> Watch Hint
+            </button>
+          {% endif %}
+        </label>
+        <select name="topic" class="select-input" required>
+          <option value="">Select Topic</option>
+          {% for topic in topics %}
+            <option value="{{ topic.pk }}"
+                {% if channel.topic_id == topic.pk %}selected
+                {% elif preselected_topic == topic.pk|stringformat:"s" %}selected
+                {% endif %}>
+              {{ topic.name }}
+            </option>
+          {% endfor %}
+        </select>
+        <span class="hint">Which topic should this channel receive?</span>
+      </div>
 
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2 flex items-center justify-between">
-                        <span>Summary Tone *</span>
-                        {% if hints.tone %}
-                        <button type="button" onclick="showHintModal('tone')" class="text-blue-500 hover:text-blue-700 text-xs font-semibold flex items-center gap-1 focus:outline-none">
-                            <i class="fas fa-play-circle"></i> Watch Hint
-                        </button>
-                        {% endif %}
-                    </label>
-                    <select name="tone"
-                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            required>
-                        <option value="Formal" {% if channel.tone == 'Formal' %}selected{% endif %}>Formal (Professional, authoritative)</option>
-                        <option value="Neutral" {% if channel.tone == 'Neutral' or not channel.tone %}selected{% endif %}>Neutral (Balanced, objective)</option>
-                        <option value="Informal" {% if channel.tone == 'Informal' %}selected{% endif %}>Informal (Friendly, casual)</option>
-                    </select>
-                    <p class="text-sm text-gray-500 mt-1">The style of the AI-generated summaries for this channel.</p>
-                </div>
+      <div class="field">
+        <label style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <span>Summary Tone *</span>
+          {% if hints.tone %}
+            <button type="button" onclick="showHintModal('tone')" style="color: var(--primary-700); font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; border: none; background: none; cursor: pointer; padding: 0;">
+              <i class="fas fa-play-circle"></i> Watch Hint
+            </button>
+          {% endif %}
+        </label>
+        <select name="tone" class="select-input" required>
+          <option value="Formal" {% if channel.tone == 'Formal' %}selected{% endif %}>Formal (Professional, authoritative)</option>
+          <option value="Neutral" {% if channel.tone == 'Neutral' or not channel.tone %}selected{% endif %}>Neutral (Balanced, objective)</option>
+          <option value="Informal" {% if channel.tone == 'Informal' %}selected{% endif %}>Informal (Friendly, casual)</option>
+        </select>
+        <span class="hint">The style of the AI-generated summaries for this channel.</span>
+      </div>
 
-                {% if request.user.profile.role == 'superadmin' %}
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-semibold mb-2">Price per Message ($) *</label>
-                    <input type="number" name="price_per_message" step="0.01" min="0.01"
-                           value="{{ channel.price_per_message|default:'0.10' }}"
-                           class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           required>
-                    <p class="text-sm text-gray-500 mt-1">Cost charged per message sent</p>
-                </div>
-
-                {% if action == 'Add' %}
-                    <div class="mb-4">
-                        <label class="block text-gray-700 font-semibold mb-2">Initial Balance ($) *</label>
-                        <input type="number" name="balance" step="0.01" min="0" value="100"
-                               class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               required>
-                        <p class="text-sm text-gray-500 mt-1">Starting balance for this channel</p>
-                    </div>
-                {% endif %}
-                {% endif %}
-
-                <div class="flex space-x-3 mt-6">
-                    <a href="{% url 'dashboard:channel_list' %}"
-                       class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 text-center py-3 px-4 rounded-lg font-semibold">
-                        Cancel
-                    </a>
-                    <button type="submit"
-                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold">
-                        <i class="fas fa-save mr-2"></i>{{ action }} Channel
-                    </button>
-                </div>
-            </form>
+      {% if request.user.profile.role == 'superadmin' %}
+        <div class="field">
+          <label>Price per Message ($) *</label>
+          <input type="number" name="price_per_message" step="0.01" min="0.01" value="{{ channel.price_per_message|default:'0.10' }}" class="input" required>
+          <span class="hint">Cost charged per message sent</span>
         </div>
 
         {% if action == 'Add' %}
-            <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 class="font-semibold text-blue-900 mb-2">
-                    <i class="fas fa-info-circle mr-2"></i>Setup Instructions
-                </h4>
-                <ol class="list-decimal list-inside space-y-1 text-sm text-blue-800">
-                    <li>Create a channel in Telegram</li>
-                    <li>Add your bot (@new_news_crawler_bot) as an admin to the channel</li>
-                    <li>Get the channel ID (numeric ID)</li>
-                    <li>Fill in the form above and save</li>
-                </ol>
-            </div>
+          <div class="field">
+            <label>Initial Balance ($) *</label>
+            <input type="number" name="balance" step="0.01" min="0" value="100" class="input" required>
+            <span class="hint">Starting balance for this channel</span>
+          </div>
         {% endif %}
+      {% endif %}
+
+      <div style="display: flex; gap: 12px; margin-top: 8px;">
+        <a href="{% url 'dashboard:channel_list' %}" class="btn btn-ghost" style="flex: 1; justify-content: center;">
+          Cancel
+        </a>
+        <button type="submit" class="btn btn-primary" style="flex: 1;">
+          <i class="fas fa-save"></i> {{ action }} Channel
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {% if action == 'Add' %}
+    <div style="margin-top: 20px; background: var(--primary-soft); border: 1px solid rgba(109, 92, 245, 0.2); border-radius: var(--r); padding: 16px;">
+      <h4 style="font-weight: 600; color: var(--primary-700); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-info-circle"></i> Setup Instructions
+      </h4>
+      <ol style="padding-left: 20px; font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px;">
+        <li>Create a channel in Telegram</li>
+        <li>Add your bot (@new_news_crawler_bot) as an admin to the channel</li>
+        <li>Get the channel ID (numeric ID)</li>
+        <li>Fill in the form above and save</li>
+      </ol>
     </div>
+  {% endif %}
+</div>
 
-    <!-- Hint Video Modal -->
-    <div id="hintModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden">
-            <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
-                <h3 class="text-lg font-bold text-gray-800" id="hintModalTitle">Video Hint</h3>
-                <button type="button" onclick="closeHintModal()" class="text-gray-500 hover:text-gray-800 text-xl font-bold focus:outline-none">&times;</button>
-            </div>
-            <div class="p-6 flex justify-center bg-black">
-                <video id="hintVideoPlayer" class="w-full max-h-[360px] rounded" controls autoplay loop>
-                    Your browser does not support the video tag.
-                </video>
-            </div>
-        </div>
+<!-- Hint Video Modal -->
+<div id="hintModal" style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 16px;">
+  <div class="card rise" style="max-width: 520px; width: 100%; overflow: hidden; border-color: var(--border-strong);">
+    <div class="card-header" style="padding: 14px 20px;">
+      <h3 class="card-header-title" id="hintModalTitle" style="font-size: 15px; font-weight: 700;">Video Hint</h3>
+      <button type="button" onclick="closeHintModal()" style="font-size: 20px; line-height: 1; color: var(--text-faint); cursor: pointer; border: none; background: none;">&times;</button>
     </div>
+    <div style="padding: 20px; display: flex; justify-content: center; background: #000;">
+      <video id="hintVideoPlayer" style="width: 100%; max-height: 360px; border-radius: var(--r-sm);" controls autoplay loop>
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  </div>
+</div>
 
-    <script>
-    function showHintModal(fieldName) {
-        const player = document.getElementById('hintVideoPlayer');
-        const modal = document.getElementById('hintModal');
-        
-        // Set source
-        player.src = `/hints/video/${fieldName}/`;
-        
-        // Set title based on fieldName
-        const titleMap = {
-            'channel_name': 'Channel Name Hint',
-            'channel_id': 'Channel ID Hint',
-            'topic': 'Topic Hint',
-            'tone': 'Summary Tone Hint'
-        };
-        document.getElementById('hintModalTitle').textContent = titleMap[fieldName] || 'Video Hint';
-        
-        // Show modal
-        modal.classList.remove('hidden');
-        player.load();
-        player.play();
-    }
+<script>
+function showHintModal(fieldName) {
+    const player = document.getElementById('hintVideoPlayer');
+    const modal = document.getElementById('hintModal');
+    
+    // Set source
+    player.src = `/hints/video/${fieldName}/`;
+    
+    // Set title based on fieldName
+    const titleMap = {
+        'channel_name': 'Channel Name Hint',
+        'channel_id': 'Channel ID Hint',
+        'topic': 'Topic Hint',
+        'tone': 'Summary Tone Hint'
+    };
+    document.getElementById('hintModalTitle').textContent = titleMap[fieldName] || 'Video Hint';
+    
+    // Show modal
+    modal.style.display = 'flex';
+    player.load();
+    player.play();
+}
 
-    function closeHintModal() {
-        const modal = document.getElementById('hintModal');
-        const player = document.getElementById('hintVideoPlayer');
-        player.pause();
-        player.src = '';
-        modal.classList.add('hidden');
-    }
-    </script>
+function closeHintModal() {
+    const modal = document.getElementById('hintModal');
+    const player = document.getElementById('hintVideoPlayer');
+    player.pause();
+    player.src = '';
+    modal.style.display = 'none';
+}
+</script>
 {% endblock %}

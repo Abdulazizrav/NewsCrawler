@@ -1,201 +1,546 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uz">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}News Crawler{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .sidebar-link { transition: all 0.15s; }
-        .sidebar-link:hover { background-color: rgba(255,255,255,0.08); }
-        .sidebar-link.active { background-color: rgba(255,255,255,0.15); border-left: 3px solid #fff; }
-        .sidebar-section { font-size: 0.65rem; letter-spacing: 0.1em; }
-    </style>
-</head>
-<body class="bg-gray-100">
-<div class="flex h-screen overflow-hidden">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}NewsCrawler{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-    <!-- ═══════════════ SIDEBAR ═══════════════ -->
-    <aside class="w-60 flex-shrink-0 flex flex-col overflow-hidden"
-           style="background: linear-gradient(160deg, #1e293b 0%, #0f172a 100%);">
+  <style>
+    /* ================================================================
+       NewsCrawler — Crowler Design System (DARK)
+       Near-black canvas · indigo/violet accent · glowing surfaces
+       ================================================================ */
 
-        <!-- Logo -->
-        <div class="px-5 py-5 border-b border-white/10">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center text-white font-bold text-sm">N</div>
-                <div>
-                    <p class="text-white font-bold text-sm leading-tight">News Crawler</p>
-                    <p class="text-blue-300 text-xs">
-                        {% if request.user.profile.role == 'superadmin' %}Super Admin{% else %}Admin Panel{% endif %}
-                    </p>
-                </div>
-            </div>
-        </div>
+    :root {
+      --font-display: 'Space Grotesk', system-ui, sans-serif;
+      --font-ui:      'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', ui-monospace, monospace;
 
-        <!-- Nav -->
-        <nav class="flex-1 px-3 py-3 space-y-0.5 overflow-hidden">
+      /* Canvas */
+      --bg:           #07070b;
+      --bg-tint:      #0b0b11;
+      --surface:      #121219;
+      --surface-2:    #1a1a24;
+      --border:       #24242f;
+      --border-strong:#32323f;
 
-            {% if request.user.profile.role == 'superadmin' %}
-            <!-- ── SUPERADMIN NAV ── -->
-            <a href="{% url 'dashboard:superadmin_home' %}" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-white hover:text-white text-sm">
-                <i class="fas fa-gauge-high w-4 text-center"></i> Dashboard
-            </a>
+      /* Text */
+      --text:         #f3f4f9;
+      --text-muted:   #a2a5b4;
+      --text-faint:   #6c6f80;
 
-            <p class="sidebar-section text-blue-200 uppercase px-3 pt-3 pb-1 font-semibold">Management</p>
+      /* Brand — indigo */
+      --primary:       #6d5cf5;
+      --primary-600:   #7d6dff;
+      --primary-700:   #bcb2ff;
+      --primary-soft:  #1a1733;
+      --primary-soft-2:#221d44;
+      --on-primary:    #ffffff;
 
-            <a href="{% url 'dashboard:superadmin_users' %}" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-white hover:text-white text-sm">
-                <i class="fas fa-users w-4 text-center"></i> Users
-            </a>
-            <a href="{% url 'dashboard:superadmin_billing' %}" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-white hover:text-white text-sm">
-                <i class="fas fa-file-invoice-dollar w-4 text-center"></i> Billing
-            </a>
-            <a href="{% url 'dashboard:superadmin_statistics' %}" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-white hover:text-white text-sm">
-                <i class="fas fa-chart-line w-4 text-center"></i> Statistics
-            </a>
-            <a href="{% url 'dashboard:topic_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-white hover:text-white text-sm">
-                <i class="fas fa-folder w-4 text-center"></i> Topics
-            </a>
-            <a href="{% url 'dashboard:superadmin_hints' %}" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-white hover:text-white text-sm">
-                <i class="fas fa-video w-4 text-center"></i> Field Hints
-            </a>
+      /* Accent — violet */
+      --accent:        #a855f7;
+      --accent-soft:   #281438;
 
-            {% else %}
-            <!-- ── CHANNEL ADMIN NAV ── -->
-            <a href="{% url 'dashboard:home' %}" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-white hover:text-white text-sm">
-                <i class="fas fa-house w-4 text-center"></i> Dashboard
-            </a>
+      /* Semantic */
+      --success:       #2fd07a;
+      --success-soft:  #0e2a1d;
+      --warning:       #f5b542;
+      --warning-soft:  #2a2010;
+      --danger:        #f76b6b;
+      --danger-soft:   #2c1517;
 
-            <!-- ── TELEGRAM (Nested) ── -->
-            <div class="pt-2">
-                <button onclick="toggleSubmenu('telegram-submenu')" class="w-full sidebar-link flex items-center justify-between px-3 py-2 rounded-lg text-white hover:text-white text-sm focus:outline-none">
-                    <div class="flex items-center gap-3">
-                        <i class="fab fa-telegram w-4 text-center"></i> Telegram
-                    </div>
-                    <i class="fas fa-chevron-down text-[10px] transition-transform duration-200" id="telegram-chevron"></i>
-                </button>
-                <div id="telegram-submenu" class="hidden mt-1 pl-7 space-y-0.5">
-                    <a href="{% url 'dashboard:channel_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-1.5 rounded-lg text-white/70 hover:text-white text-[13px]">
-                        <i class="fas fa-list-ul w-3 text-center text-[10px]"></i> Channels
-                    </a>
-                    <a href="{% url 'dashboard:summary_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-1.5 rounded-lg text-white/70 hover:text-white text-[13px]">
-                        <i class="fas fa-envelope w-3 text-center text-[10px]"></i> Messages
-                    </a>
-                    <a href="{% url 'dashboard:planner' %}" class="sidebar-link flex items-center gap-3 px-3 py-1.5 rounded-lg text-white/70 hover:text-white text-[13px]">
-                        <i class="fas fa-calendar-alt w-3 text-center text-[10px]"></i> Planner
-                    </a>
-                    <a href="{% url 'dashboard:delivery_list' %}" class="sidebar-link flex items-center gap-3 px-3 py-1.5 rounded-lg text-white/70 hover:text-white text-[13px]">
-                        <i class="fas fa-paper-plane w-3 text-center text-[10px]"></i> Deliveries
-                    </a>
-                </div>
-            </div>
+      /* Shape */
+      --r-sm:   8px;
+      --r:      12px;
+      --r-lg:   16px;
+      --r-xl:   22px;
+      --r-pill: 999px;
 
-            <p class="sidebar-section text-blue-200 uppercase px-3 pt-3 pb-1 font-semibold">System</p>
+      /* Shadows */
+      --shadow-sm:      0 1px 2px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.012);
+      --shadow:         0 6px 20px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.4);
+      --shadow-lg:      0 24px 60px rgba(0,0,0,.65), 0 8px 20px rgba(0,0,0,.5);
+      --shadow-primary: 0 10px 30px rgba(109,92,245,.45);
 
-            <a href="{% url 'dashboard:statistics' %}" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-white hover:text-white text-sm">
-                <i class="fas fa-chart-bar w-4 text-center"></i> Statistics
-            </a>
-            {% endif %}
-        </nav>
-
-        <!-- User + Logout -->
-        <div class="px-3 py-3 border-t border-white/10">
-            <div class="flex items-center gap-2 px-2 py-2 mb-1">
-                <div class="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                    {{ request.user.username|slice:":1"|upper }}
-                </div>
-                <div class="min-w-0">
-                    <p class="text-white text-xs font-medium truncate">{{ request.user.username }}</p>
-                    <p class="text-blue-200 text-xs truncate">
-                        {% if request.user.profile.role == 'superadmin' %}Super Admin{% else %}Channel Admin{% endif %}
-                    </p>
-                </div>
-            </div>
-            <form method="post" action="{% url 'logout' %}">
-                {% csrf_token %}
-                <button type="submit" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-white hover:text-white hover:bg-white/10 text-sm transition">
-                    <i class="fas fa-sign-out-alt w-4 text-center"></i> Logout
-                </button>
-            </form>
-        </div>
-    </aside>
-
-    <!-- ═══════════════ MAIN ═══════════════ -->
-    <div class="flex-1 flex flex-col overflow-hidden">
-
-        <!-- Top Bar -->
-        <header class="bg-white border-b border-gray-200 flex-shrink-0">
-            <div class="flex items-center justify-between px-6 py-3">
-                <div>
-                    <h1 class="text-lg font-bold text-gray-800">{% block page_title %}Dashboard{% endblock %}</h1>
-                    <p class="text-xs text-gray-400">{% block page_subtitle %}{% endblock %}</p>
-                </div>
-                <span class="text-xs text-gray-400"><i class="fas fa-clock mr-1"></i><span id="current-time"></span></span>
-            </div>
-        </header>
-
-        <!-- Messages -->
-        {% if messages %}
-        <div class="px-6 pt-4 space-y-2">
-            {% for message in messages %}
-            <div class="px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2
-                {% if message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200
-                {% elif message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200
-                {% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
-                <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
-                {{ message }}
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        <!-- Content -->
-        <main class="flex-1 overflow-y-auto p-6">
-            {% block content %}{% endblock %}
-        </main>
-    </div>
-</div>
-
-<script>
-    // Clock
-    (function tick() {
-        document.getElementById('current-time').textContent = new Date().toLocaleString();
-        setTimeout(tick, 1000);
-    })();
-
-    // Submenu Toggle
-    function toggleSubmenu(id) {
-        const menu = document.getElementById(id);
-        const chevron = document.getElementById(id.replace('-submenu', '-chevron'));
-        menu.classList.toggle('hidden');
-        if (chevron) {
-            chevron.classList.toggle('rotate-180');
-        }
-        // Save state
-        localStorage.setItem(id, !menu.classList.contains('hidden'));
+      --sidebar-w: 256px;
+      --header-h:  60px;
+      --transition: all 0.18s ease;
     }
 
-    // Restore Submenu State
-    document.addEventListener('DOMContentLoaded', () => {
-        const ids = ['telegram-submenu'];
-        ids.forEach(id => {
-            const menu = document.getElementById(id);
-            const chevron = document.getElementById(id.replace('-submenu', '-chevron'));
-            if (localStorage.getItem(id) === 'true') {
-                menu.classList.remove('hidden');
-                if (chevron) chevron.classList.add('rotate-180');
-            }
-        });
-    });
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      display: flex;
+      overflow: hidden;
+    }
+    a { text-decoration: none; color: inherit; }
+    button { font-family: inherit; cursor: pointer; color: inherit; border: none; background: none; }
+    input, textarea, select { font-family: inherit; }
+    ::selection { background: rgba(109,92,245,.35); }
 
-    // Active sidebar link
-    const path = window.location.pathname;
-    document.querySelectorAll('.sidebar-link').forEach(link => {
-        const href = link.getAttribute('href');
-        if (href && href !== '/' && path.startsWith(href)) link.classList.add('active');
-        else if (href === path) link.classList.add('active');
+    /* Scrollbar */
+    *::-webkit-scrollbar { width: 8px; height: 8px; }
+    *::-webkit-scrollbar-thumb { background: #2c2c3a; border-radius: 99px; border: 2px solid var(--bg); }
+    *::-webkit-scrollbar-track { background: transparent; }
+
+    /* ─── SIDEBAR ─── */
+    .sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      height: 100vh;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      z-index: 20;
+    }
+
+    /* Brand */
+    .sidebar-brand {
+      padding: 18px 16px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .brand-mark {
+      width: 32px; height: 32px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      display: grid; place-items: center;
+      box-shadow: var(--shadow-primary); flex-shrink: 0;
+    }
+    .brand-mark svg { width: 17px; height: 17px; }
+    .brand-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+    .brand-name { font-family: var(--font-display); font-weight: 700; font-size: 15.5px; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand-role { font-size: 11.5px; color: var(--text-faint); font-family: var(--font-mono); white-space: nowrap; }
+
+    /* Nav */
+    .sidebar-nav { flex: 1; overflow-y: auto; padding: 10px 10px 0; }
+    .nav-section {
+      font-family: var(--font-mono); font-size: 10.5px; font-weight: 500;
+      letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint);
+      padding: 14px 6px 6px; user-select: none;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px; border-radius: var(--r);
+      color: var(--text-muted); font-size: 14px; font-weight: 500;
+      transition: var(--transition); margin-bottom: 2px;
+      position: relative;
+    }
+    .nav-item i { width: 17px; text-align: center; font-size: 14px; flex-shrink: 0; }
+    .nav-item:hover { background: var(--surface-2); color: var(--text); }
+    .nav-item.active {
+      background: var(--primary-soft); color: var(--primary-700);
+      border-left: 3px solid var(--primary);
+      padding-left: 7px;
+    }
+    .nav-item.active i { color: var(--primary); }
+
+    /* Submenu */
+    .nav-submenu { overflow: hidden; transition: max-height .25s ease; max-height: 0; }
+    .nav-submenu.open { max-height: 200px; }
+    .nav-submenu-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 7px 10px 7px 36px; border-radius: var(--r);
+      color: var(--text-faint); font-size: 13px; font-weight: 500;
+      transition: var(--transition); margin-bottom: 2px;
+    }
+    .nav-submenu-item i { width: 13px; text-align: center; font-size: 12px; }
+    .nav-submenu-item:hover { background: var(--surface-2); color: var(--text); }
+    .nav-submenu-item.active { color: var(--primary-700); }
+
+    .nav-toggle-btn {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 9px 10px; border-radius: var(--r);
+      color: var(--text-muted); font-size: 14px; font-weight: 500;
+      transition: var(--transition); margin-bottom: 2px;
+      justify-content: space-between;
+    }
+    .nav-toggle-btn:hover { background: var(--surface-2); color: var(--text); }
+    .nav-toggle-left { display: flex; align-items: center; gap: 10px; }
+    .nav-toggle-left i { width: 17px; text-align: center; flex-shrink: 0; }
+    .chevron { font-size: 10px; transition: transform .2s; }
+    .chevron.rotated { transform: rotate(180deg); }
+
+    /* User / Logout */
+    .sidebar-footer {
+      padding: 12px 10px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .user-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; border-radius: var(--r);
+      margin-bottom: 4px;
+    }
+    .user-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      display: grid; place-items: center;
+      font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .user-info { min-width: 0; flex: 1; }
+    .user-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-role-badge { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-faint); }
+    .logout-btn {
+      display: flex; align-items: center; gap: 9px;
+      width: 100%; padding: 8px 10px; border-radius: var(--r);
+      color: var(--text-muted); font-size: 13.5px; font-weight: 500;
+      transition: var(--transition);
+    }
+    .logout-btn:hover { background: var(--danger-soft); color: var(--danger); }
+    .logout-btn i { width: 17px; text-align: center; }
+
+    /* ─── MAIN ─── */
+    .main-wrapper {
+      flex: 1; display: flex; flex-direction: column;
+      overflow: hidden; min-width: 0;
+    }
+
+    /* Top header */
+    .top-header {
+      height: var(--header-h); flex-shrink: 0;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px;
+    }
+    .page-heading { display: flex; flex-direction: column; gap: 1px; }
+    .page-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; letter-spacing: -.02em; }
+    .page-subtitle { font-size: 12px; color: var(--text-faint); }
+    .header-clock { font-family: var(--font-mono); font-size: 12px; color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
+
+    /* Flash messages */
+    .messages-wrap { padding: 16px 28px 0; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+    .flash-msg {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 16px; border-radius: var(--r); font-size: 13.5px; font-weight: 500;
+    }
+    .flash-success { background: var(--success-soft); color: var(--success); border: 1px solid rgba(47,208,122,.2); }
+    .flash-error   { background: var(--danger-soft);  color: var(--danger);  border: 1px solid rgba(247,107,107,.2); }
+    .flash-info    { background: var(--primary-soft);  color: var(--primary-700); border: 1px solid rgba(109,92,245,.25); }
+    .flash-warning { background: var(--warning-soft);  color: var(--warning); border: 1px solid rgba(245,181,66,.2); }
+
+    /* Content */
+    .content-area { flex: 1; overflow-y: auto; padding: 28px; }
+
+    /* ─── COMPONENT CLASSES ─── */
+
+    /* Cards */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r-lg); box-shadow: var(--shadow-sm);
+    }
+    .card-pad { padding: 22px; }
+
+    /* Stat cards */
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 20px;
+      display: flex; align-items: center; gap: 16px;
+      transition: border-color .15s, transform .12s;
+    }
+    .stat-card:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+    .stat-icon {
+      width: 48px; height: 48px; border-radius: var(--r);
+      background: var(--primary-soft); display: grid; place-items: center; flex-shrink: 0;
+    }
+    .stat-icon i { color: var(--primary-700); font-size: 20px; }
+    .stat-icon.success { background: var(--success-soft); }
+    .stat-icon.success i { color: var(--success); }
+    .stat-icon.warning { background: var(--warning-soft); }
+    .stat-icon.warning i { color: var(--warning); }
+    .stat-icon.accent  { background: var(--accent-soft); }
+    .stat-icon.accent  i { color: #d8a8f5; }
+    .stat-value { font-family: var(--font-display); font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1; }
+    .stat-label { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; }
+    .stat-sub { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+
+    /* Grid helpers */
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+    @media (max-width: 900px) { .grid-4 { grid-template-columns: repeat(2,1fr); } .grid-3 { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 600px) { .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; } }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      font-family: var(--font-ui); font-weight: 600; font-size: 14px;
+      padding: 10px 18px; border-radius: var(--r); border: 1px solid transparent;
+      transition: transform .12s, box-shadow .18s, background .15s, border-color .15s;
+      white-space: nowrap; cursor: pointer;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: var(--shadow-primary); }
+    .btn-primary:hover { background: var(--primary-600); }
+    .btn-ghost { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
+    .btn-ghost:hover { background: #20202c; border-color: var(--text-faint); }
+    .btn-subtle { background: var(--primary-soft); color: var(--primary-700); }
+    .btn-subtle:hover { background: var(--primary-soft-2); }
+    .btn-danger { background: var(--danger-soft); color: var(--danger); }
+    .btn-danger:hover { background: #3a1a1d; }
+    .btn-success { background: var(--success-soft); color: var(--success); }
+    .btn-sm { padding: 7px 13px; font-size: 13px; border-radius: var(--r-sm); }
+    .btn-lg { padding: 12px 24px; font-size: 15.5px; border-radius: var(--r-lg); }
+    .btn-block { width: 100%; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* Pills */
+    .pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: var(--r-pill);
+      font-size: 12px; font-weight: 600;
+      background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border);
+    }
+    .pill-primary { background: var(--primary-soft); color: var(--primary-700); border-color: transparent; }
+    .pill-success { background: var(--success-soft); color: var(--success); border-color: transparent; }
+    .pill-warning { background: var(--warning-soft); color: var(--warning); border-color: transparent; }
+    .pill-danger  { background: var(--danger-soft);  color: var(--danger);  border-color: transparent; }
+    .pill-accent  { background: var(--accent-soft);  color: #d8a8f5; border-color: transparent; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+    /* Forms */
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field > label { font-size: 13px; font-weight: 600; color: var(--text); }
+    .field .hint { font-size: 12px; color: var(--text-faint); }
+    .input, .textarea, .select-input {
+      width: 100%; padding: 10px 13px; font-size: 14px;
+      background: var(--surface-2); color: var(--text);
+      border: 1px solid var(--border-strong); border-radius: var(--r);
+      transition: border-color .15s, box-shadow .15s; outline: none;
+      font-family: var(--font-ui);
+    }
+    .input:focus, .textarea:focus, .select-input:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft);
+    }
+    .input::placeholder, .textarea::placeholder { color: var(--text-faint); }
+    .textarea { resize: vertical; min-height: 96px; line-height: 1.55; }
+    select.select-input option { background: var(--surface-2); color: var(--text); }
+    input[type="date"], input[type="time"] { color-scheme: dark; }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; }
+    table.dark-table { width: 100%; border-collapse: collapse; }
+    table.dark-table thead tr { background: var(--surface-2); }
+    table.dark-table th {
+      text-align: left; padding: 11px 14px; font-size: 12px; font-weight: 600;
+      color: var(--text-faint); text-transform: uppercase; letter-spacing: .07em;
+      border-bottom: 1px solid var(--border);
+    }
+    table.dark-table td { padding: 13px 14px; font-size: 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    table.dark-table tbody tr { transition: background .12s; }
+    table.dark-table tbody tr:hover { background: var(--surface-2); }
+    table.dark-table tbody tr:last-child td { border-bottom: none; }
+
+    /* Card header row */
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px; border-bottom: 1px solid var(--border);
+    }
+    .card-header-title { font-family: var(--font-display); font-size: 15px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; }
+
+    /* Misc */
+    .section-gap { margin-bottom: 20px; }
+    .muted { color: var(--text-muted); }
+    .faint { color: var(--text-faint); }
+    .mono { font-family: var(--font-mono); }
+    .text-sm { font-size: 13px; }
+    .text-xs { font-size: 11.5px; }
+
+    /* Animations */
+    @keyframes rise { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .rise { animation: rise .4s cubic-bezier(.2,.7,.3,1) both; }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 52px 20px; color: var(--text-faint); }
+    .empty-state i { font-size: 36px; margin-bottom: 12px; opacity: .4; display: block; }
+    .empty-state p { font-size: 14px; color: var(--text-muted); }
+  </style>
+</head>
+
+<body>
+  <!-- ═══════ SIDEBAR ═══════ -->
+  <aside class="sidebar">
+    <!-- Brand -->
+    <div class="sidebar-brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v2m0 16v2M2 12h2m16 0h2m-3.5-6.5-1.4 1.4M6.9 17.1l-1.4 1.4m0-13L6.9 6.9m10.2 10.2 1.4 1.4"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">NewsCrawler</div>
+        <div class="brand-role">
+          {% if request.user.profile.role == 'superadmin' %}Super Admin{% else %}Admin Panel{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="sidebar-nav">
+      {% if request.user.profile.role == 'superadmin' %}
+        <!-- ── SUPERADMIN NAV ── -->
+        <a href="{% url 'dashboard:superadmin_home' %}" class="nav-item {% if request.resolver_match.url_name == 'superadmin_home' %}active{% endif %}">
+          <i class="fas fa-gauge-high"></i> Dashboard
+        </a>
+        <div class="nav-section">Management</div>
+        <a href="{% url 'dashboard:superadmin_users' %}" class="nav-item {% if 'users' in request.resolver_match.url_name %}active{% endif %}">
+          <i class="fas fa-users"></i> Foydalanuvchilar
+        </a>
+        <a href="{% url 'dashboard:superadmin_billing' %}" class="nav-item {% if 'billing' in request.resolver_match.url_name %}active{% endif %}">
+          <i class="fas fa-file-invoice-dollar"></i> To'lovlar
+        </a>
+        <a href="{% url 'dashboard:superadmin_statistics' %}" class="nav-item {% if 'superadmin_statistics' in request.resolver_match.url_name %}active{% endif %}">
+          <i class="fas fa-chart-line"></i> Statistika
+        </a>
+        <a href="{% url 'dashboard:topic_list' %}" class="nav-item {% if 'topic' in request.resolver_match.url_name %}active{% endif %}">
+          <i class="fas fa-folder"></i> Mavzular
+        </a>
+        <a href="{% url 'dashboard:superadmin_hints' %}" class="nav-item {% if 'hints' in request.resolver_match.url_name %}active{% endif %}">
+          <i class="fas fa-video"></i> Field Hints
+        </a>
+
+      {% else %}
+        <!-- ── CHANNEL ADMIN NAV ── -->
+        <a href="{% url 'dashboard:home' %}" class="nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+          <i class="fas fa-house"></i> Dashboard
+        </a>
+
+        <div class="nav-section">Telegram</div>
+
+        <!-- Channels submenu -->
+        <button class="nav-toggle-btn" onclick="toggleSubmenu('telegram-submenu', 'telegram-chevron')" id="telegram-toggle">
+          <div class="nav-toggle-left">
+            <i class="fab fa-telegram"></i> Telegram
+          </div>
+          <i class="fas fa-chevron-down chevron" id="telegram-chevron"></i>
+        </button>
+        <div class="nav-submenu" id="telegram-submenu">
+          <a href="{% url 'dashboard:channel_list' %}" class="nav-submenu-item {% if 'channel' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-list-ul"></i> Kanallar
+          </a>
+          <a href="{% url 'dashboard:summary_list' %}" class="nav-submenu-item {% if 'summary' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-envelope"></i> Xabarlar
+          </a>
+          <a href="{% url 'dashboard:planner' %}" class="nav-submenu-item {% if 'planner' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-calendar-alt"></i> Rejalashtiruvchi
+          </a>
+          <a href="{% url 'dashboard:delivery_list' %}" class="nav-submenu-item {% if 'delivery' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-paper-plane"></i> Jo'natmalar
+          </a>
+        </div>
+
+        <div class="nav-section">Tizim</div>
+        <a href="{% url 'dashboard:statistics' %}" class="nav-item {% if request.resolver_match.url_name == 'statistics' %}active{% endif %}">
+          <i class="fas fa-chart-bar"></i> Statistika
+        </a>
+      {% endif %}
+    </nav>
+
+    <!-- User footer -->
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-avatar">{{ request.user.username|slice:":1"|upper }}</div>
+        <div class="user-info">
+          <div class="user-name">{{ request.user.username }}</div>
+          <div class="user-role-badge">{% if request.user.profile.role == 'superadmin' %}Super Admin{% else %}Channel Admin{% endif %}</div>
+        </div>
+      </div>
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="logout-btn">
+          <i class="fas fa-sign-out-alt"></i> Chiqish
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <!-- ═══════ MAIN ═══════ -->
+  <div class="main-wrapper">
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="page-heading">
+        <div class="page-title">{% block page_title %}Dashboard{% endblock %}</div>
+        <div class="page-subtitle">{% block page_subtitle %}{% endblock %}</div>
+      </div>
+      <div class="header-clock">
+        <i class="fas fa-clock" style="color:var(--text-faint)"></i>
+        <span id="current-time"></span>
+      </div>
+    </header>
+
+    <!-- Flash Messages -->
+    {% if messages %}
+    <div class="messages-wrap">
+      {% for message in messages %}
+      <div class="flash-msg {% if message.tags == 'success' %}flash-success{% elif message.tags == 'error' %}flash-error{% elif message.tags == 'warning' %}flash-warning{% else %}flash-info{% endif %}">
+        <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %}"></i>
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Page Content -->
+    <main class="content-area">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script>
+    // Live clock
+    (function tick() {
+      const now = new Date();
+      document.getElementById('current-time').textContent = now.toLocaleString('uz-UZ', { hour:'2-digit', minute:'2-digit', second:'2-digit', day:'2-digit', month:'short', year:'numeric' });
+      setTimeout(tick, 1000);
+    })();
+
+    // Submenu toggle
+    function toggleSubmenu(menuId, chevronId) {
+      const menu = document.getElementById(menuId);
+      const chevron = document.getElementById(chevronId);
+      const isOpen = menu.classList.contains('open');
+      menu.classList.toggle('open', !isOpen);
+      if (chevron) chevron.classList.toggle('rotated', !isOpen);
+      localStorage.setItem(menuId, String(!isOpen));
+    }
+
+    // Restore submenu state
+    document.addEventListener('DOMContentLoaded', () => {
+      ['telegram-submenu'].forEach(id => {
+        const menu = document.getElementById(id);
+        const chevron = document.getElementById(id.replace('-submenu', '-chevron'));
+        const wasOpen = localStorage.getItem(id) === 'true';
+        // Auto-open if current page is inside submenu
+        const path = window.location.pathname;
+        const submenuLinks = menu ? menu.querySelectorAll('a') : [];
+        let hasActive = false;
+        submenuLinks.forEach(link => {
+          const href = link.getAttribute('href');
+          if (href && href !== '/' && path.startsWith(href)) hasActive = true;
+        });
+        if (wasOpen || hasActive) {
+          menu && menu.classList.add('open');
+          chevron && chevron.classList.add('rotated');
+        }
+      });
     });
-</script>
-{% block extra_js %}{% endblock %}
+  </script>
+
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

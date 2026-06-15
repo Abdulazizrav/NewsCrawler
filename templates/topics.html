@@ -1,94 +1,92 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Topics{% endblock %}
-{% block page_subtitle %}{% if request.user.profile.role == 'superadmin' %}Manage news categories and keywords{% else %}Browse available topics{% endif %}{% endblock %}
+{% block page_title %}Mavzular{% endblock %}
+{% block page_subtitle %}{% if request.user.profile.role == 'superadmin' %}Yangilik kategoriyalari va kalit so'zlarni boshqaring{% else %}Mavjud mavzularni ko'ring{% endif %}{% endblock %}
 
 {% block content %}
-    <div class="mb-6 flex justify-between items-center">
-        <p class="text-gray-600">Total topics: <span class="font-semibold">{{ topics_count }}</span></p>
+<!-- Top bar -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
+  <div class="text-sm muted">Jami mavzular: <span style="font-weight:700;color:var(--text)">{{ topics_count }}</span></div>
+  {% if request.user.profile.role == 'superadmin' %}
+  <a href="{% url 'dashboard:topic_add' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Mavzu qo'shish</a>
+  {% else %}
+  <a href="{% url 'dashboard:topic_select' %}" class="btn btn-subtle"><i class="fas fa-plus"></i> Qo'shish</a>
+  {% endif %}
+</div>
 
-        {% if request.user.profile.role == 'superadmin' %}
-        <a href="{% url 'dashboard:topic_add' %}"
-           class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow transition">
-            <i class="fas fa-plus mr-2"></i>Add Topic
-        </a>
-        {% else %}
-        <a href="{% url 'dashboard:topic_select' %}"
-           class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg shadow transition">
-            <i class="fas fa-plus mr-2"></i>Add
-        </a>
-        {% endif %}
+<!-- Topic cards grid -->
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px">
+  {% for topic in topics %}
+  <div class="card rise" style="animation-delay:{{ forloop.counter0|stringformat:'d' }}0ms;overflow:hidden">
+    <!-- Header gradient -->
+    <div style="padding:20px 22px;background:linear-gradient(135deg,var(--primary-soft-2),var(--accent-soft));border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:40px;height:40px;border-radius:var(--r);background:linear-gradient(135deg,var(--primary),var(--accent));display:grid;place-items:center;flex-shrink:0">
+          <i class="fas fa-folder" style="color:#fff;font-size:16px"></i>
+        </div>
+        <div style="font-family:var(--font-display);font-size:18px;font-weight:700;letter-spacing:-.02em">{{ topic.name }}</div>
+      </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for topic in topics %}
-            <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition">
-                <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-6 text-white">
-                    <h3 class="text-2xl font-bold">{{ topic.name }}</h3>
-                </div>
+    <div style="padding:18px 22px">
+      <!-- Keywords -->
+      {% if topic.keyword_list %}
+      <div style="margin-bottom:16px">
+        <div class="text-xs faint" style="margin-bottom:7px;text-transform:uppercase;letter-spacing:.07em">Kalit so'zlar</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          {% for keyword in topic.keyword_list %}
+          <span class="pill">{{ keyword }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
 
-                <div class="p-6">
-                    <div class="mb-4">
-                        <p class="text-sm text-gray-600 mb-2">Keywords:</p>
-                        <div class="flex flex-wrap gap-2">
-                            {% for keyword in topic.keyword_list %}
-                                <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">{{ keyword }}</span>
-                            {% endfor %}
-                        </div>
-                    </div>
+      <!-- Stats -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div style="background:var(--primary-soft);border-radius:var(--r);padding:12px;text-align:center">
+          <div class="text-xs faint" style="margin-bottom:4px">Yangiliklar</div>
+          <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--primary-700)">{{ topic.article_count }}</div>
+        </div>
+        <div style="background:var(--success-soft);border-radius:var(--r);padding:12px;text-align:center">
+          <div class="text-xs faint" style="margin-bottom:4px">Kanallar</div>
+          <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--success)">{{ topic.channel_count }}</div>
+        </div>
+      </div>
 
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div class="bg-blue-50 p-3 rounded-lg">
-                            <p class="text-xs text-gray-600">Articles</p>
-                            <p class="text-2xl font-bold text-blue-600">{{ topic.article_count }}</p>
-                        </div>
-                        <div class="bg-green-50 p-3 rounded-lg">
-                            <p class="text-xs text-gray-600">Channels</p>
-                            <p class="text-2xl font-bold text-green-600">{{ topic.channel_count }}</p>
-                        </div>
-                    </div>
-
-                    {% if request.user.profile.role == 'superadmin' %}
-                    <div class="flex space-x-2">
-                        <a href="{% url 'dashboard:topic_edit' topic.pk %}"
-                           class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 rounded-lg font-semibold text-sm">
-                            <i class="fas fa-edit mr-1"></i>Edit
-                        </a>
-                        <form method="post" action="{% url 'dashboard:topic_delete' topic.pk %}" class="flex-1"
-                              onsubmit="return confirm('Delete topic {{ topic.name }}?')">
-                            {% csrf_token %}
-                            <button type="submit"
-                                    class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-semibold text-sm">
-                                <i class="fas fa-trash mr-1"></i>Delete
-                            </button>
-                        </form>
-                    </div>
-                    {% else %}
-                    <div class="pt-2 border-t border-gray-100">
-                        <p class="text-xs text-gray-400 text-center">
-                            <i class="fas fa-info-circle mr-1"></i>Managed by admin
-                        </p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        {% empty %}
-            <div class="col-span-3 bg-white rounded-lg shadow p-12 text-center">
-                <i class="fas fa-folder-open text-gray-300 text-6xl mb-4"></i>
-                {% if request.user.profile.role == 'superadmin' %}
-                <p class="text-gray-500 mb-4">No topics yet</p>
-                <a href="{% url 'dashboard:topic_add' %}"
-                   class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg">
-                    Create First Topic
-                </a>
-                {% else %}
-                <p class="text-gray-500 mb-4">You haven't added any topics yet</p>
-                <a href="{% url 'dashboard:topic_select' %}"
-                   class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg">
-                    <i class="fas fa-plus mr-2"></i>Add a Topic
-                </a>
-                {% endif %}
-            </div>
-        {% endfor %}
+      <!-- Actions -->
+      {% if request.user.profile.role == 'superadmin' %}
+      <div style="display:flex;gap:8px">
+        <a href="{% url 'dashboard:topic_edit' topic.pk %}" class="btn btn-subtle btn-sm" style="flex:1;justify-content:center">
+          <i class="fas fa-edit"></i> Tahrirlash
+        </a>
+        <form method="post" action="{% url 'dashboard:topic_delete' topic.pk %}" onsubmit="return confirm('{{ topic.name }} mavzusini o\'chirish?')" style="flex:1">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger btn-sm btn-block">
+            <i class="fas fa-trash"></i> O'chirish
+          </button>
+        </form>
+      </div>
+      {% else %}
+      <div style="padding-top:12px;border-top:1px solid var(--border);text-align:center">
+        <span class="text-xs faint"><i class="fas fa-info-circle"></i> Admin tomonidan boshqariladi</span>
+      </div>
+      {% endif %}
     </div>
+  </div>
+
+  {% empty %}
+  <div class="card card-pad" style="grid-column:1/-1">
+    <div class="empty-state">
+      <i class="fas fa-folder-open"></i>
+      {% if request.user.profile.role == 'superadmin' %}
+      <p>Hali mavzular yo'q</p>
+      <a href="{% url 'dashboard:topic_add' %}" class="btn btn-primary" style="margin-top:16px"><i class="fas fa-plus"></i> Birinchi mavzu</a>
+      {% else %}
+      <p>Siz hali mavzu qo'shmagansiz</p>
+      <a href="{% url 'dashboard:topic_select' %}" class="btn btn-subtle" style="margin-top:16px"><i class="fas fa-plus"></i> Mavzu qo'shish</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
 {% endblock %}

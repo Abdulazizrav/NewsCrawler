@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block page_title %}Summaries{% endblock %}
-{% block page_subtitle %}AI-generated article summaries{% endblock %}
+{% block page_subtitle %}Sun'iy intellekt tomonidan yaratilgan maqolalar{% endblock %}
 
 {% block content %}
 
@@ -235,9 +235,9 @@
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
         <div class="flex items-center justify-between p-5 border-b">
             <div>
-                <h2 class="text-lg font-semibold text-gray-800">Choose Channels</h2>
+                <h2 class="text-lg font-semibold text-gray-800">Kanallarni Tanlang</h2>
                 <p class="text-sm text-gray-500 mt-0.5">
-                    Select which channels to send
+                    Qaysi kanallarga yuborish kerakligini tanlang
                     <span id="channelModalCount" class="font-semibold text-blue-600"></span>
                 </p>
             </div>
@@ -247,7 +247,7 @@
             <label class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer mb-3 hover:bg-gray-100 transition-colors">
                 <input type="checkbox" id="selectAllChannels" onchange="toggleAllChannels(this)"
                     class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                <span class="text-sm font-semibold text-gray-700">Select All Channels</span>
+                <span class="text-sm font-semibold text-gray-700">Barcha Kanallarni Tanlash</span>
             </label>
             <div class="space-y-2 max-h-72 overflow-y-auto pr-1" id="channelList">
                 {% for channel in user_channels %}
@@ -258,29 +258,29 @@
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-gray-800 truncate">{{ channel.name }}</p>
                         <p class="text-xs text-gray-400 truncate">
-                            {{ channel.topic.name }} &nbsp;·&nbsp; Balance: ${{ channel.balance }}
+                            {{ channel.topic.name }} &nbsp;·&nbsp; Balans: ${{ channel.balance }}
                         </p>
                     </div>
                     {% if not channel.is_active %}
-                    <span class="text-xs text-red-500 font-medium bg-red-50 px-2 py-0.5 rounded-full">Inactive</span>
+                    <span class="text-xs text-red-500 font-medium bg-red-50 px-2 py-0.5 rounded-full">Nofaol</span>
                     {% endif %}
                 </label>
                 {% empty %}
-                <p class="text-sm text-gray-500 text-center py-4">No active channels found.</p>
+                <p class="text-sm text-gray-500 text-center py-4">Faol kanallar topilmadi.</p>
                 {% endfor %}
             </div>
         </div>
         <div class="flex justify-end gap-3 p-5 border-t bg-gray-50 rounded-b-xl">
             <button type="button" onclick="closeChannelModal()"
                 class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                Cancel
+                Bekor qilish
             </button>
             <button type="button" onclick="submitSend()"
                 id="confirmSendBtn"
                 class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 disabled>
                 <i class="fas fa-paper-plane text-xs"></i>
-                Confirm & Send
+                Tasdiqlash & Yuborish
             </button>
         </div>
     </div>
@@ -291,20 +291,20 @@
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
         <div class="flex items-center justify-between p-5 border-b">
             <div>
-                <h2 class="text-lg font-semibold text-gray-800">📅 Schedule Send</h2>
+                <h2 class="text-lg font-semibold text-gray-800">📅 Vaqtni Rejalashtirish</h2>
                 <p class="text-sm text-gray-500 mt-0.5">
-                    Schedule <span id="scheduleModalCount" class="font-semibold text-purple-600"></span> to be sent later
+                    <span id="scheduleModalCount" class="font-semibold text-purple-600"></span> ni keyin yuborish uchun rejalashtirish
                 </p>
             </div>
             <button onclick="closeScheduleModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
         <div class="p-5 space-y-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Channels</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Kanallar</label>
                 <label class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer mb-2 hover:bg-gray-100 transition-colors">
                     <input type="checkbox" id="scheduleSelectAllChannels" onchange="toggleAllScheduleChannels(this)"
                         class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
-                    <span class="text-sm font-semibold text-gray-700">Select All Channels</span>
+                    <span class="text-sm font-semibold text-gray-700">Barcha Kanallarni Tanlash</span>
                 </label>
                 <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
                     {% for channel in user_channels %}
@@ -315,17 +315,17 @@
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-medium text-gray-800 truncate">{{ channel.name }}</p>
                             <p class="text-xs text-gray-400 truncate">
-                                {{ channel.topic.name }} &nbsp;·&nbsp; Balance: ${{ channel.balance }}
+                                {{ channel.topic.name }} &nbsp;·&nbsp; Balans: ${{ channel.balance }}
                             </p>
                         </div>
                     </label>
                     {% empty %}
-                    <p class="text-sm text-gray-500 text-center py-4">No active channels found.</p>
+                    <p class="text-sm text-gray-500 text-center py-4">Faol kanallar topilmadi.</p>
                     {% endfor %}
                 </div>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Send At</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Yuborish Vaqti</label>
                 <input type="datetime-local" id="scheduleDateTime" step="60"
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
                 <p class="text-xs text-gray-400 mt-1">Must be at least 1 minute in the future.</p>
@@ -334,14 +334,14 @@
         <div class="flex justify-end gap-3 p-5 border-t bg-gray-50 rounded-b-xl">
             <button type="button" onclick="closeScheduleModal()"
                 class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                Cancel
+                Bekor qilish
             </button>
             <button type="button" onclick="submitSchedule()"
                 id="confirmScheduleBtn"
                 class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 disabled>
                 <i class="fas fa-clock text-xs"></i>
-                Confirm Schedule
+                Tasdiqlash & Rejalashtirish
             </button>
         </div>
     </div>
@@ -385,7 +385,7 @@
             <label class="flex items-center gap-2 cursor-pointer select-none text-sm font-medium text-gray-700">
                 <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"
                     class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
-                Select All
+                Barchasini Tanlash
             </label>
             <span class="text-sm text-gray-500">
                 Total: <span class="font-semibold text-gray-800">{{ page_obj.paginator.count }}</span>
@@ -397,13 +397,13 @@
                 class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-700 bg-white border border-purple-300 rounded-lg hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 disabled>
                 <i class="fas fa-clock text-xs"></i>
-                Schedule
+                Rejalashtirish
             </button>
             <button type="button" id="sendBtn" onclick="openChannelModal()"
                 class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 disabled>
                 <i class="fas fa-paper-plane text-xs"></i>
-                Send Selected
+                Tanlanganlarni Yuborish
             </button>
         </div>
     </div>
@@ -435,7 +435,7 @@
                                     onclick="toggleInlineEdit('{{ summary.pk }}')"
                                     class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-all">
                                     <i class="fas fa-pen text-xs"></i>
-                                    Edit
+                                    Tahrirlash
                                 </button>
                             </div>
                         </div>
@@ -446,8 +446,8 @@
                                 </span>
                             {% endif %}
                             <span><i class="fas fa-globe mr-1"></i>{{ summary.article.source }}</span>
-                            <span><i class="fas fa-clock mr-1"></i>{{ summary.created_date|timesince }} ago</span>
-                            <a href="{% url 'dashboard:article_detail' summary.article.pk %}" class="text-blue-500 hover:underline">View Original</a>
+                            <span><i class="fas fa-clock mr-1"></i>{{ summary.created_date|timesince }} oldin</span>
+                            <a href="{% url 'dashboard:article_detail' summary.article.pk %}" class="text-blue-500 hover:underline">Originalini ko'rish</a>
                         </div>
                     </div>
 
@@ -456,18 +456,18 @@
                         {% csrf_token %}
                         <input type="hidden" name="page" value="{{ page_obj.number }}">
                         <div class="mb-3">
-                            <label class="block text-xs font-medium text-gray-600 mb-1">Edit Fully Translated Block (Title on first line)</label>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">To'liq tarjima qilingan blokni tahrirlash (birinchi qatordagi sarlavha)</label>
                             <textarea name="summary_text" rows="12"
                                 class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y bg-white">{{ summary.summary_text }}</textarea>
                         </div>
                         <div class="flex justify-end gap-2">
                             <button type="button" onclick="toggleInlineEdit('{{ summary.pk }}')"
                                 class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-100">
-                                Cancel
+                                Bekor qilish
                             </button>
                             <button type="submit"
                                 class="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
-                                Save
+                                Saqlash
                             </button>
                         </div>
                     </form>
@@ -477,8 +477,7 @@
         {% empty %}
         <div class="p-12 text-center text-gray-400">
             <i class="fas fa-inbox text-5xl mb-3 block opacity-40"></i>
-            <p class="text-base font-medium">No summaries yet.</p>
-            <p class="text-sm mt-1">Run the summarizer from the dashboard!</p>
+            <p class="text-base font-medium">Yangiliklar mavjud emas</p>
         </div>
         {% endfor %}
     </div>
@@ -861,8 +860,8 @@
                 <span class="tg-back-btn">&#8249;</span>
                 <div class="tg-avatar" id="tgChannelInitial">N</div>
                 <div class="tg-header-info">
-                    <div class="tg-channel-name" id="tgChannelName">Channel Name</div>
-                    <div class="tg-channel-meta">channel</div>
+                    <div class="tg-channel-name" id="tgChannelName">Kanal Nomi</div>
+                    <div class="tg-channel-meta">kanal</div>
                 </div>
                 <svg width="20" height="20" fill="none" viewBox="0 0 24 24" style="color:#007AFF;margin-left:auto;">
                     <circle cx="12" cy="12" r="10" stroke="#007AFF" stroke-width="1.8"/>
@@ -875,7 +874,7 @@
 
                 <!-- Date chip -->
                 <div style="text-align:center;margin-bottom:12px;">
-                    <span style="display:inline-block;background:rgba(0,0,0,0.22);color:#fff;font-size:11px;padding:3px 10px;border-radius:12px;">Today</span>
+                    <span style="display:inline-block;background:rgba(0,0,0,0.22);color:#fff;font-size:11px;padding:3px 10px;border-radius:12px;">Bugun</span>
                 </div>
 
                 <!-- Message bubble -->
@@ -911,7 +910,7 @@
                     <circle cx="12" cy="12" r="10" stroke="#c7c7cc" stroke-width="1.8"/>
                     <path d="M12 8v8M8 12h8" stroke="#c7c7cc" stroke-width="1.8" stroke-linecap="round"/>
                 </svg>
-                <div class="tg-input-fake">Message…</div>
+                <div class="tg-input-fake">Xabar...</div>
                 <div class="tg-send-fake">
                     <i class="fas fa-paper-plane" style="font-size:13px;margin-left:1px;"></i>
                 </div>

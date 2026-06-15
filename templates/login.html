@@ -1,45 +1,146 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uz">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | News Crawler Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kirish | NewsCrawler</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #07070b; --surface: #121219; --surface-2: #1a1a24;
+      --border: #24242f; --border-strong: #32323f;
+      --text: #f3f4f9; --text-muted: #a2a5b4; --text-faint: #6c6f80;
+      --primary: #6d5cf5; --primary-600: #7d6dff; --primary-700: #bcb2ff;
+      --primary-soft: #1a1733; --accent: #a855f7;
+      --danger: #f76b6b; --danger-soft: #2c1517;
+      --shadow-primary: 0 10px 30px rgba(109,92,245,.45);
+      --shadow-lg: 0 24px 60px rgba(0,0,0,.65);
+      --r: 12px; --r-lg: 16px; --r-xl: 22px; --r-pill: 999px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; display: grid; place-items: center;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* animated bg glow */
+    body::before {
+      content: ''; position: fixed; top: -20%; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 400px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(109,92,245,.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .login-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r-xl); padding: 40px 36px;
+      width: 100%; max-width: 420px;
+      box-shadow: var(--shadow-lg);
+      animation: rise .5s cubic-bezier(.2,.7,.3,1) both;
+    }
+    @keyframes rise { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    .brand { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 32px; text-align: center; }
+    .brand-mark {
+      width: 52px; height: 52px; border-radius: 16px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      display: grid; place-items: center; box-shadow: var(--shadow-primary);
+    }
+    .brand-mark svg { width: 28px; height: 28px; }
+    .brand-name { font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -.03em; }
+    .brand-sub { font-size: 13px; color: var(--text-faint); }
+
+    .error-box {
+      background: var(--danger-soft); color: var(--danger);
+      border: 1px solid rgba(247,107,107,.25); border-radius: var(--r);
+      padding: 11px 14px; font-size: 13.5px; font-weight: 500;
+      display: flex; align-items: center; gap: 8px; margin-bottom: 20px;
+    }
+
+    .form-fields { display: flex; flex-direction: column; gap: 16px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 13px; font-weight: 600; color: var(--text); }
+    .input-wrap { position: relative; }
+    .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-faint); font-size: 14px; pointer-events: none; }
+    .field input {
+      width: 100%; padding: 11px 13px 11px 38px;
+      background: var(--surface-2); color: var(--text);
+      border: 1px solid var(--border-strong); border-radius: var(--r);
+      font-size: 14px; font-family: inherit; outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .field input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+    .field input::placeholder { color: var(--text-faint); }
+
+    .submit-btn {
+      width: 100%; padding: 13px;
+      background: var(--primary); color: #fff;
+      border: none; border-radius: var(--r);
+      font-size: 15px; font-weight: 700; font-family: inherit;
+      cursor: pointer; margin-top: 8px;
+      box-shadow: var(--shadow-primary);
+      transition: background .15s, transform .12s;
+    }
+    .submit-btn:hover { background: var(--primary-600); transform: translateY(-1px); }
+    .submit-btn:active { transform: translateY(0); }
+
+    .login-footer { text-align: center; font-size: 12px; color: var(--text-faint); margin-top: 24px; }
+  </style>
 </head>
-<body class="bg-gray-50 flex items-center justify-center min-h-screen">
-    <div class="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
-        <h1 class="text-2xl font-bold text-center mb-6 text-blue-600">📰 News Crawler</h1>
-
-        {% if form.errors %}
-        <div class="mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded">
-            Invalid username or password.
-        </div>
-        {% endif %}
-
-        <form method="post" class="space-y-4">
-            {% csrf_token %}
-
-            <div>
-                <label class="block text-sm font-medium text-gray-600">Username</label>
-                <input type="text" name="username" autofocus required
-                       class="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-600">Password</label>
-                <input type="password" name="password" required
-                       class="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
-            </div>
-
-            <button type="submit"
-                    class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
-                Login
-            </button>
-        </form>
-
-        <p class="text-center text-sm text-gray-500 mt-4">
-            &copy; {{ now|date:"Y" }} News Crawler
-        </p>
+<body>
+  <div class="login-card">
+    <!-- Brand -->
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v2m0 16v2M2 12h2m16 0h2m-3.5-6.5-1.4 1.4M6.9 17.1l-1.4 1.4m0-13L6.9 6.9m10.2 10.2 1.4 1.4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">NewsCrawler</div>
+        <div class="brand-sub">Admin paneliga kirish</div>
+      </div>
     </div>
+
+    {% if form.errors %}
+    <div class="error-box">
+      <i class="fas fa-exclamation-circle"></i>
+      Noto'g'ri foydalanuvchi nomi yoki parol.
+    </div>
+    {% endif %}
+
+    <form method="post" class="form-fields">
+      {% csrf_token %}
+
+      <div class="field">
+        <label for="id_username">Foydalanuvchi nomi</label>
+        <div class="input-wrap">
+          <i class="fas fa-user input-icon"></i>
+          <input type="text" name="username" id="id_username" autofocus required placeholder="foydalanuvchi_nomi">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="id_password">Parol</label>
+        <div class="input-wrap">
+          <i class="fas fa-lock input-icon"></i>
+          <input type="password" name="password" id="id_password" required placeholder="••••••••">
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn">
+        <i class="fas fa-sign-in-alt" style="margin-right:6px"></i> Kirish
+      </button>
+    </form>
+
+    <div class="login-footer">
+      &copy; {{ now|date:"Y" }} NewsCrawler. Barcha huquqlar himoyalangan.
+    </div>
+  </div>
 </body>
 </html>

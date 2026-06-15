@@ -1,452 +1,273 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Summary Planner{% endblock %}
-{% block page_subtitle %}Visually schedule and distribute your news summaries across custom intervals{% endblock %}
+{% block page_title %}Yangilik Rejalashtiruvchi{% endblock %}
+{% block page_subtitle %}Yangiliklar xulosalarini vizual ravishda rejalashtiring{% endblock %}
 
 {% block content %}
 <!-- FullCalendar CSS -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
 <style>
-    /* Premium FullCalendar Custom Styling */
-    .fc-theme-standard td, .fc-theme-standard th {
-        border-color: #F3F4F6 !important;
-    }
-    .fc-header-toolbar {
-        margin-bottom: 1.5rem !important;
-    }
-    .fc-button-primary {
-        background-color: #3B82F6 !important;
-        border-color: #3B82F6 !important;
-        font-weight: 500 !important;
-        text-transform: capitalize !important;
-        padding: 0.5rem 1rem !important;
-        border-radius: 0.375rem !important;
-        transition: all 0.2s !important;
-    }
-    .fc-button-primary:hover {
-        background-color: #2563EB !important;
-        border-color: #2563EB !important;
-    }
-    .fc-button-active {
-        background-color: #1D4ED8 !important;
-        border-color: #1D4ED8 !important;
-    }
-    .fc-event {
-        cursor: pointer;
-        padding: 4px 8px !important;
-        font-size: 0.85rem !important;
-        border-radius: 6px !important;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        margin-top: 2px !important;
-        margin-bottom: 2px !important;
-        border: none !important;
-    }
-    .fc-daygrid-day:hover {
-        background-color: #F9FAFB;
-        cursor: pointer;
-    }
-    .fc-col-header-cell {
-        background-color: #F3F4F6;
-        padding: 8px 0 !important;
-        font-weight: 600;
-        color: #4B5563;
-    }
+  /* Dark FullCalendar overrides */
+  .fc { --fc-border-color: var(--border); --fc-page-bg-color: transparent; --fc-neutral-bg-color: var(--surface-2); --fc-list-event-hover-bg-color: var(--surface-2); }
+  .fc-theme-standard td, .fc-theme-standard th { border-color: var(--border) !important; }
+  .fc-col-header-cell { background: var(--surface-2); }
+  .fc-col-header-cell-cushion { color: var(--text-muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .fc-daygrid-day-number { color: var(--text-faint); font-size: 13px; }
+  .fc-daygrid-day.fc-day-today { background: var(--primary-soft) !important; }
+  .fc-daygrid-day:hover { background: var(--surface-2); cursor: pointer; }
+  .fc-button-primary { background: var(--primary) !important; border-color: var(--primary) !important; font-weight: 600 !important; border-radius: var(--r) !important; transition: all .15s !important; font-family: var(--font-ui) !important; }
+  .fc-button-primary:hover { background: var(--primary-600) !important; }
+  .fc-button-primary:not(:disabled).fc-button-active { background: var(--primary-soft-2) !important; color: var(--primary-700) !important; border-color: var(--primary) !important; }
+  .fc-toolbar-title { font-family: var(--font-display) !important; font-size: 18px !important; font-weight: 700 !important; letter-spacing: -.02em !important; }
+  .fc-event { border-radius: var(--r-sm) !important; border: none !important; padding: 3px 7px !important; font-size: 12px !important; box-shadow: var(--shadow-sm) !important; }
+
+  /* Modals */
+  .dark-modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.75);
+    backdrop-filter: blur(8px); z-index: 50;
+    display: none; align-items: center; justify-content: center;
+  }
+  .dark-modal-overlay.open { display: flex; }
+  .dark-modal-card {
+    background: var(--surface); border: 1px solid var(--border-strong);
+    border-radius: var(--r-xl); width: 100%; max-width: 500px;
+    max-height: 90vh; overflow-y: auto; padding: 28px;
+    box-shadow: var(--shadow-lg); position: relative;
+  }
+  .dark-modal-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+  .dark-modal-sub { font-size: 13px; color: var(--text-faint); margin-bottom: 22px; }
+  .mode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--bg); border-radius: var(--r); padding: 4px; border: 1px solid var(--border); margin-bottom: 16px; }
+  .mode-btn { padding: 8px; border-radius: var(--r-sm); font-size: 13px; font-weight: 600; color: var(--text-faint); transition: var(--transition); }
+  .mode-btn.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
 </style>
 
-<div class="mb-6 flex justify-between items-center">
-    <div>
-        <p class="text-gray-600">Visual planning board for automated Telegram dispatches.</p>
-    </div>
-    <button onclick="openScheduleModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg shadow-lg font-medium transition flex items-center">
-        <i class="fas fa-calendar-plus mr-2"></i>Schedule Batch Interval
+<!-- Top action bar -->
+<div style="display:flex;justify-content:flex-end;margin-bottom:20px">
+  <button onclick="openScheduleModal()" class="btn btn-primary">
+    <i class="fas fa-calendar-plus"></i> To'plam rejalashtirish
+  </button>
+</div>
+
+<!-- Calendar card -->
+<div class="card card-pad">
+  <div id="calendar"></div>
+</div>
+
+<!-- ═══ SCHEDULE MODAL ═══ -->
+<div id="scheduleModal" class="dark-modal-overlay">
+  <div class="dark-modal-card">
+    <button onclick="closeScheduleModal()" style="position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;color:var(--text-muted)">
+      <i class="fas fa-times"></i>
     </button>
-</div>
+    <div class="dark-modal-title"><i class="fas fa-clock" style="color:var(--primary);margin-right:8px"></i>To'plam Rejalashtirish</div>
+    <div class="dark-modal-sub">Sana oralig'ini tanlang. Yangiliklar avtomatik teng tarqatiladi.</div>
 
-<!-- Calendar Card -->
-<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-    <div id="calendar"></div>
-</div>
+    <form id="scheduleForm" onsubmit="handleScheduleSubmit(event)" style="display:flex;flex-direction:column;gap:14px">
+      {% csrf_token %}
+      <div class="field">
+        <label>Maqsadli Telegram Kanal</label>
+        <select name="channel_id" id="channelSelect" required onchange="loadUnsentSummaries()" class="input select-input">
+          <option value="" disabled selected>Kanal tanlang...</option>
+          {% for channel in channels %}
+          <option value="{{ channel.id }}">{{ channel.name }} ({{ channel.topic.name }})</option>
+          {% endfor %}
+        </select>
+      </div>
 
-<!-- Modal: Schedule Batch Interval -->
-<div id="scheduleModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 transition-opacity duration-300">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-        <button onclick="closeScheduleModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition">
-            <i class="fas fa-times text-xl"></i>
-        </button>
+      <div class="field">
+        <label>Jo'natish kuni</label>
+        <input type="date" name="date" id="dateInput" required class="input">
+      </div>
 
-        <h3 class="text-xl font-bold text-gray-900 mb-2 flex items-center">
-            <i class="fas fa-clock text-blue-600 mr-2"></i>Schedule Batch Interval
-        </h3>
-        <p class="text-sm text-gray-500 mb-6">Select a date range window. Summaries will be automatically distributed evenly across the interval.</p>
-
-        <form id="scheduleForm" onsubmit="handleScheduleSubmit(event)">
-            {% csrf_token %}
-            <!-- Channel Selection -->
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Target Telegram Channel</label>
-                <select name="channel_id" id="channelSelect" required onchange="loadUnsentSummaries()" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-                    <option value="" disabled selected>Select a channel...</option>
-                    {% for channel in channels %}
-                        <option value="{{ channel.id }}">
-                            {{ channel.name }} (Topic: {{ channel.topic.name }})
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- Date Select -->
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Publishing Day</label>
-                <input type="date" name="date" id="dateInput" required class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
-            </div>
-
-            <!-- Time Window (Interval) -->
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Start Time</label>
-                    <input type="time" name="start_time" required value="08:00" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">End Time</label>
-                    <input type="time" name="end_time" required value="20:00" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
-                </div>
-            </div>
-
-            <!-- Selection Mode: Auto / Manual -->
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Selection Mode</label>
-                <div class="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-lg">
-                    <button type="button" onclick="setMode('auto')" id="modeAutoBtn" class="py-2 text-sm font-medium rounded-md bg-white text-gray-800 shadow-sm transition">
-                        <i class="fas fa-magic mr-1.5"></i>Auto-Schedule
-                    </button>
-                    <button type="button" onclick="setMode('manual')" id="modeManualBtn" class="py-2 text-sm font-medium rounded-md text-gray-600 hover:text-gray-800 transition">
-                        <i class="fas fa-list mr-1.5"></i>Manual Pick
-                    </button>
-                </div>
-                <input type="hidden" name="mode" id="modeInput" value="auto" />
-            </div>
-
-            <!-- Auto Mode Input -->
-            <div id="autoModeContainer" class="mb-5">
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Number of Summaries to Send</label>
-                <input type="number" name="auto_count" value="3" min="1" max="10" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
-                <p class="text-xs text-gray-500 mt-1">We will fetch the newest unsent summaries belonging to the channel's topic and spread them out.</p>
-            </div>
-
-            <!-- Manual Mode Input -->
-            <div id="manualModeContainer" class="mb-5 hidden">
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Select Summaries to Schedule</label>
-                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 max-h-[180px] overflow-y-auto space-y-2.5" id="summaryListContainer">
-                    <p class="text-sm text-gray-500 italic">Select a channel first to load its available summaries...</p>
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="closeScheduleModal()" class="px-5 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition">
-                    Cancel
-                </button>
-                <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-lg transition">
-                    Schedule Batch
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Modal: Event Details -->
-<div id="eventModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 transition-opacity duration-300">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
-        <button onclick="closeEventModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition">
-            <i class="fas fa-times text-xl"></i>
-        </button>
-
-        <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
-            <i class="fas fa-info-circle text-blue-600 mr-2"></i>Schedule Details
-        </h3>
-
-        <div class="space-y-4 text-sm text-gray-700">
-            <div>
-                <span class="block text-xs font-semibold uppercase text-gray-400">Target Channel</span>
-                <span class="font-medium text-gray-900" id="eventChannel"></span>
-            </div>
-            <div>
-                <span class="block text-xs font-semibold uppercase text-gray-400">Scheduled Time</span>
-                <span class="font-medium text-gray-900" id="eventTime"></span>
-            </div>
-            <div>
-                <span class="block text-xs font-semibold uppercase text-gray-400">Status</span>
-                <span id="eventStatus" class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold mt-1"></span>
-            </div>
-            <div>
-                <span class="block text-xs font-semibold uppercase text-gray-400 mb-1.5">Scheduled Summaries</span>
-                <ul class="list-disc pl-5 space-y-1 text-gray-800" id="eventSummariesList"></ul>
-            </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field">
+          <label>Boshlanish vaqti</label>
+          <input type="time" name="start_time" required value="08:00" class="input">
         </div>
-
-        <div class="flex justify-end space-x-3 mt-6 border-t pt-4">
-            <button onclick="closeEventModal()" class="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition">
-                Close
-            </button>
-            <form id="deleteEventForm" onsubmit="handleDeleteEvent(event)" class="inline">
-                {% csrf_token %}
-                <button type="submit" id="deleteBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition">
-                    Cancel Schedule
-                </button>
-            </form>
+        <div class="field">
+          <label>Tugash vaqti</label>
+          <input type="time" name="end_time" required value="20:00" class="input">
         </div>
-    </div>
+      </div>
+
+      <!-- Mode toggle -->
+      <div class="field">
+        <label>Tanlash uslubi</label>
+        <div class="mode-toggle">
+          <button type="button" onclick="setMode('auto')" id="modeAutoBtn" class="mode-btn active"><i class="fas fa-magic"></i> Avtomatik</button>
+          <button type="button" onclick="setMode('manual')" id="modeManualBtn" class="mode-btn"><i class="fas fa-list"></i> Qo'l bilan</button>
+        </div>
+        <input type="hidden" name="mode" id="modeInput" value="auto">
+      </div>
+
+      <!-- Auto -->
+      <div id="autoModeContainer" class="field">
+        <label>Jo'natish uchun xabarlar soni</label>
+        <input type="number" name="auto_count" value="3" min="1" max="10" class="input">
+        <span class="hint">Eng yangi yuborilmagan xulosalar olinadi</span>
+      </div>
+
+      <!-- Manual -->
+      <div id="manualModeContainer" style="display:none">
+        <div class="field">
+          <label>Yangiliklarni tanlang</label>
+          <div id="summaryListContainer" style="background:var(--surface-2);border:1px solid var(--border-strong);border-radius:var(--r);padding:10px;max-height:160px;overflow-y:auto">
+            <p style="font-size:13px;color:var(--text-faint);font-style:italic">Avval kanalni tanlang...</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button type="button" onclick="closeScheduleModal()" class="btn btn-ghost" style="flex:1">Bekor qilish</button>
+        <button type="submit" class="btn btn-primary" style="flex:1">Rejalashtirish</button>
+      </div>
+    </form>
+  </div>
 </div>
 
-<!-- FullCalendar & Custom JS -->
+<!-- ═══ EVENT MODAL ═══ -->
+<div id="eventModal" class="dark-modal-overlay">
+  <div class="dark-modal-card">
+    <button onclick="closeEventModal()" style="position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;color:var(--text-muted)">
+      <i class="fas fa-times"></i>
+    </button>
+    <div class="dark-modal-title"><i class="fas fa-info-circle" style="color:var(--primary);margin-right:8px"></i>Reja Tafsilotlari</div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">
+      <div>
+        <div class="text-xs faint mono" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Target Kanal</div>
+        <div style="font-weight:600" id="eventChannel"></div>
+      </div>
+      <div>
+        <div class="text-xs faint mono" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Reja vaqti</div>
+        <div style="font-family:var(--font-mono);font-size:13px" id="eventTime"></div>
+      </div>
+      <div>
+        <div class="text-xs faint mono" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Holat</div>
+        <span id="eventStatus" class="pill"></span>
+      </div>
+      <div>
+        <div class="text-xs faint mono" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Reja qilingan yangiliklar</div>
+        <ul id="eventSummariesList" style="display:flex;flex-direction:column;gap:6px;list-style:none"></ul>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+      <button onclick="closeEventModal()" class="btn btn-ghost btn-sm">Yopish</button>
+      <form id="deleteEventForm" onsubmit="handleDeleteEvent(event)" style="display:inline">
+        {% csrf_token %}
+        <button type="submit" id="deleteBtn" class="btn btn-danger btn-sm">Rejani bekor qilish</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toastContainer" style="position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:200"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
 <script>
-    let calendar;
-    let selectedEventId = null;
+  let calendar, selectedEventId = null;
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const calendarEl = document.getElementById('calendar');
-        
-        calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek'
-            },
-            editable: false,
-            selectable: true,
-            events: '/api/planner/events/',
-            
-            // Click to schedule on a specific date
-            select: function(info) {
-                openScheduleModal(info.startStr);
-            },
-            
-            // Click on existing event
-            eventClick: function(info) {
-                showEventDetails(info.event);
-            }
-        });
-        
-        calendar.render();
+  document.addEventListener('DOMContentLoaded', function() {
+    calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+      initialView: 'dayGridMonth',
+      headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' },
+      editable: false, selectable: true,
+      events: '/api/planner/events/',
+      select: info => openScheduleModal(info.startStr),
+      eventClick: info => showEventDetails(info.event)
     });
+    calendar.render();
+  });
 
-    // Schedule Modal Controls
-    function openScheduleModal(dateStr = '') {
-        document.getElementById('scheduleForm').reset();
-        setMode('auto');
-        
-        if (dateStr) {
-            document.getElementById('dateInput').value = dateStr;
-        } else {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('dateInput').value = today;
-        }
-        
-        document.getElementById('summaryListContainer').innerHTML = `
-            <p class="text-sm text-gray-500 italic">Select a channel first to load its available summaries...</p>
-        `;
-        
-        const modal = document.getElementById('scheduleModal');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
+  function openScheduleModal(dateStr = '') {
+    document.getElementById('scheduleForm').reset();
+    setMode('auto');
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('dateInput').value = dateStr || today;
+    document.getElementById('summaryListContainer').innerHTML = '<p style="font-size:13px;color:var(--text-faint);font-style:italic">Avval kanalni tanlang...</p>';
+    document.getElementById('scheduleModal').classList.add('open');
+  }
+  function closeScheduleModal() { document.getElementById('scheduleModal').classList.remove('open'); }
 
-    function closeScheduleModal() {
-        const modal = document.getElementById('scheduleModal');
-        modal.classList.remove('flex');
-        modal.classList.add('hidden');
+  function setMode(mode) {
+    document.getElementById('modeInput').value = mode;
+    const autoBtn = document.getElementById('modeAutoBtn');
+    const manualBtn = document.getElementById('modeManualBtn');
+    const autoCont = document.getElementById('autoModeContainer');
+    const manualCont = document.getElementById('manualModeContainer');
+    if (mode === 'auto') {
+      autoBtn.classList.add('active'); manualBtn.classList.remove('active');
+      autoCont.style.display = 'block'; manualCont.style.display = 'none';
+    } else {
+      manualBtn.classList.add('active'); autoBtn.classList.remove('active');
+      manualCont.style.display = 'block'; autoCont.style.display = 'none';
     }
+  }
 
-    // Set auto/manual scheduling mode
-    function setMode(mode) {
-        document.getElementById('modeInput').value = mode;
-        const autoBtn = document.getElementById('modeAutoBtn');
-        const manualBtn = document.getElementById('modeManualBtn');
-        const autoCont = document.getElementById('autoModeContainer');
-        const manualCont = document.getElementById('manualModeContainer');
-        
-        if (mode === 'auto') {
-            autoBtn.className = "py-2 text-sm font-medium rounded-md bg-white text-gray-800 shadow-sm transition";
-            manualBtn.className = "py-2 text-sm font-medium rounded-md text-gray-600 hover:text-gray-800 transition";
-            autoCont.classList.remove('hidden');
-            manualCont.classList.add('hidden');
-        } else {
-            manualBtn.className = "py-2 text-sm font-medium rounded-md bg-white text-gray-800 shadow-sm transition";
-            autoBtn.className = "py-2 text-sm font-medium rounded-md text-gray-600 hover:text-gray-800 transition";
-            manualCont.classList.remove('hidden');
-            autoCont.classList.add('hidden');
-        }
-    }
+  function loadUnsentSummaries() {
+    const channelId = document.getElementById('channelSelect').value;
+    const container = document.getElementById('summaryListContainer');
+    if (!channelId) return;
+    container.innerHTML = '<div style="display:flex;justify-content:center;padding:16px"><i class="fas fa-spinner fa-spin" style="color:var(--primary);font-size:18px"></i></div>';
+    fetch(`/api/planner/unsent-summaries/?channel_id=${channelId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.summaries.length) { container.innerHTML = '<p style="font-size:13px;color:var(--text-faint);font-style:italic;padding:8px">Bu kanal uchun yuborilmagan xabarlar yo\'q.</p>'; return; }
+        container.innerHTML = data.summaries.map(s => `
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:8px;border-radius:var(--r-sm);border:1px solid var(--border);margin-bottom:6px;cursor:pointer;transition:background .12s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+            <input type="checkbox" name="summary_ids" value="${s.id}" style="margin-top:2px;accent-color:var(--primary)">
+            <div><div style="font-size:13px;font-weight:600;color:var(--text)">${s.title}</div><div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono)">${s.date}</div></div>
+          </label>`).join('');
+      })
+      .catch(() => { container.innerHTML = '<p style="color:var(--danger);font-size:13px;padding:8px">Xatolik yuz berdi.</p>'; });
+  }
 
-    // Load available unsent summaries for selected channel
-    function loadUnsentSummaries() {
-        const channelId = document.getElementById('channelSelect').value;
-        const container = document.getElementById('summaryListContainer');
-        
-        if (!channelId) return;
-        
-        container.innerHTML = `
-            <div class="flex justify-center py-4">
-                <i class="fas fa-spinner fa-spin text-blue-500 text-xl"></i>
-            </div>
-        `;
-        
-        fetch(`/api/planner/unsent-summaries/?channel_id=${channelId}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.summaries.length === 0) {
-                    container.innerHTML = `
-                        <p class="text-sm text-gray-500 italic py-2">No available unsent summaries for this channel's topic.</p>
-                    `;
-                    return;
-                }
-                
-                let html = '';
-                data.summaries.forEach(s => {
-                    html += `
-                        <label class="flex items-start space-x-2.5 p-2 hover:bg-white rounded border border-transparent hover:border-gray-200 transition cursor-pointer">
-                            <input type="checkbox" name="summary_ids" value="${s.id}" class="mt-1 rounded text-blue-600 focus:ring-blue-500" />
-                            <div class="text-xs">
-                                <p class="font-medium text-gray-800">${s.title}</p>
-                                <span class="text-[10px] text-gray-400">${s.date}</span>
-                            </div>
-                        </label>
-                    `;
-                });
-                container.innerHTML = html;
-            })
-            .catch(err => {
-                container.innerHTML = `
-                    <p class="text-sm text-red-500 py-2">Error loading summaries. Please try again.</p>
-                `;
-            });
-    }
+  function handleScheduleSubmit(e) {
+    e.preventDefault();
+    const formData = new FormData(document.getElementById('scheduleForm'));
+    fetch('/planner/schedule-interval/', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.json())
+      .then(data => { if (data.success) { closeScheduleModal(); calendar.refetchEvents(); showToast(data.message, 'success'); } else { showToast(data.error || 'Xatolik.', 'error'); } })
+      .catch(() => showToast('Kutilmagan xatolik.', 'error'));
+  }
 
-    // Submit batch interval form
-    function handleScheduleSubmit(event) {
-        event.preventDefault();
-        const form = document.getElementById('scheduleForm');
-        const formData = new FormData(form);
-        
-        fetch('/planner/schedule-interval/', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                closeScheduleModal();
-                calendar.refetchEvents();
-                // Custom simple alert banner
-                showToast(data.message, 'success');
-            } else {
-                showToast(data.error || 'Failed to schedule.', 'error');
-            }
-        })
-        .catch(err => {
-            showToast('An unexpected error occurred.', 'error');
-        });
+  function showEventDetails(eventObj) {
+    selectedEventId = eventObj.id;
+    const props = eventObj.extendedProps;
+    document.getElementById('eventChannel').textContent = props.channel_names;
+    document.getElementById('eventTime').textContent = props.scheduled_time;
+    const statusEl = document.getElementById('eventStatus');
+    if (props.is_sent) {
+      statusEl.textContent = 'Yuborildi'; statusEl.className = 'pill pill-success';
+      document.getElementById('deleteBtn').style.display = 'none';
+    } else {
+      statusEl.textContent = 'Kutilmoqda'; statusEl.className = 'pill pill-warning';
+      document.getElementById('deleteBtn').style.display = 'inline-flex';
     }
+    const list = document.getElementById('eventSummariesList');
+    list.innerHTML = props.summaries_details.map(s => `<li style="display:flex;align-items:flex-start;gap:8px;font-size:13px;padding:8px;background:var(--surface-2);border-radius:var(--r-sm)"><i class="fas fa-newspaper" style="color:var(--text-faint);margin-top:1px"></i><span>${s.title}</span></li>`).join('');
+    document.getElementById('eventModal').classList.add('open');
+  }
+  function closeEventModal() { document.getElementById('eventModal').classList.remove('open'); selectedEventId = null; }
 
-    // Show Details of Scheduled Send Event
-    function showEventDetails(eventObj) {
-        selectedEventId = eventObj.id;
-        const props = eventObj.extendedProps;
-        
-        document.getElementById('eventChannel').innerText = props.channel_names;
-        document.getElementById('eventTime').innerText = props.scheduled_time;
-        
-        const statusEl = document.getElementById('eventStatus');
-        if (props.is_sent) {
-            statusEl.innerText = "Sent";
-            statusEl.className = "inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold mt-1 bg-green-100 text-green-800";
-            document.getElementById('deleteBtn').classList.add('hidden'); // Cannot cancel sent events
-        } else {
-            statusEl.innerText = "Pending";
-            statusEl.className = "inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold mt-1 bg-blue-100 text-blue-800";
-            document.getElementById('deleteBtn').classList.remove('hidden');
-        }
-        
-        const listContainer = document.getElementById('eventSummariesList');
-        listContainer.innerHTML = '';
-        props.summaries_details.forEach(s => {
-            const li = document.createElement('li');
-            li.className = "font-medium text-gray-800";
-            li.innerText = s.title;
-            listContainer.appendChild(li);
-        });
-        
-        const modal = document.getElementById('eventModal');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
+  function handleDeleteEvent(e) {
+    e.preventDefault();
+    if (!selectedEventId || !confirm('Bu reja bekor qilinsinmi?')) return;
+    const formData = new FormData(document.getElementById('deleteEventForm'));
+    fetch(`/planner/delete/${selectedEventId}/`, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.json())
+      .then(data => { if (data.success) { closeEventModal(); calendar.refetchEvents(); showToast('Reja bekor qilindi.', 'success'); } else { showToast('Bekor qilib bo\'lmadi.', 'error'); } })
+      .catch(() => showToast('Kutilmagan xatolik.', 'error'));
+  }
 
-    function closeEventModal() {
-        const modal = document.getElementById('eventModal');
-        modal.classList.remove('flex');
-        modal.classList.add('hidden');
-        selectedEventId = null;
-    }
-
-    // Delete Event Form
-    function handleDeleteEvent(event) {
-        event.preventDefault();
-        if (!selectedEventId) return;
-        
-        if (!confirm('Are you sure you want to cancel and delete this scheduled publication?')) return;
-        
-        const form = document.getElementById('deleteEventForm');
-        const formData = new FormData(form);
-        
-        fetch(`/planner/delete/${selectedEventId}/`, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                closeEventModal();
-                calendar.refetchEvents();
-                showToast('Scheduled publication successfully canceled.', 'success');
-            } else {
-                showToast('Failed to cancel schedule.', 'error');
-            }
-        })
-        .catch(err => {
-            showToast('An unexpected error occurred.', 'error');
-        });
-    }
-
-    // Standard high fidelity clean Toast notifications
-    function showToast(message, type = 'success') {
-        const toast = document.createElement('div');
-        toast.className = `fixed bottom-5 right-5 px-5 py-3.5 rounded-xl shadow-2xl text-white font-medium z-50 transition transform translate-y-10 opacity-0 duration-300 flex items-center ${
-            type === 'success' ? 'bg-green-600' : 'bg-red-600'
-        }`;
-        toast.innerHTML = `
-            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2.5 text-lg"></i>
-            <span>${message}</span>
-        `;
-        document.body.appendChild(toast);
-        
-        // Trigger transition
-        setTimeout(() => {
-            toast.classList.remove('translate-y-10', 'opacity-0');
-        }, 50);
-        
-        // Remove toast
-        setTimeout(() => {
-            toast.classList.add('translate-y-10', 'opacity-0');
-            setTimeout(() => toast.remove(), 300);
-        }, 4000);
-    }
+  function showToast(message, type = 'success') {
+    const t = document.createElement('div');
+    t.style.cssText = `display:flex;align-items:center;gap:10px;padding:12px 18px;border-radius:var(--r-lg);font-size:14px;font-weight:600;box-shadow:var(--shadow-lg);animation:rise .3s ease both;background:${type==='success'?'var(--success-soft)':'var(--danger-soft)'};color:${type==='success'?'var(--success)':'var(--danger)'};border:1px solid ${type==='success'?'rgba(47,208,122,.25)':'rgba(247,107,107,.25)'}`;
+    t.innerHTML = `<i class="fas ${type==='success'?'fa-check-circle':'fa-exclamation-circle'}"></i><span>${message}</span>`;
+    document.getElementById('toastContainer').appendChild(t);
+    setTimeout(() => { t.style.opacity='0'; t.style.transform='translateY(8px)'; t.style.transition='all .3s'; setTimeout(()=>t.remove(),300); }, 4000);
+  }
 </script>
 {% endblock %}

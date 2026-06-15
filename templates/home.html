@@ -1,192 +1,175 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Dashboard Home{% endblock %}
-{% block page_subtitle %}Overview of your news crawler system{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Tizim holati va bugungi ko'rsatkichlar{% endblock %}
 
 {% block content %}
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <!-- Articles Card -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-4">
-                <div class="p-3 bg-blue-100 rounded-lg">
-                    <i class="fas fa-newspaper text-blue-600 text-2xl"></i>
-                </div>
-                <div class="text-right">
-                    <p class="text-3xl font-bold text-gray-800">{{ total_articles }}</p>
-                    <p class="text-sm text-gray-500">Total Articles</p>
-                </div>
-            </div>
-            <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-600">Today:</span>
-                <span class="font-semibold text-green-600">+{{ articles_today }}</span>
-            </div>
-        </div>
+<style>
+  .overview-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; margin-bottom: 24px; }
+  .revenue-card {
+    background: linear-gradient(135deg, #1a3a2a 0%, var(--success-soft) 100%);
+    border: 1px solid rgba(47,208,122,.2);
+    border-radius: var(--r-lg); padding: 22px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .alert-card { grid-column: span 2; }
+  .progress-bar-bg { height: 6px; background: var(--border); border-radius: var(--r-pill); overflow: hidden; margin-top: 8px; }
+  .progress-bar-fill { height: 100%; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width .5s ease; }
+  @media (max-width: 1100px) { .overview-grid { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 600px)  { .overview-grid { grid-template-columns: 1fr; } }
+</style>
 
-        <!-- Summaries Card -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-4">
-                <div class="p-3 bg-purple-100 rounded-lg">
-                    <i class="fas fa-align-left text-purple-600 text-2xl"></i>
-                </div>
-                <div class="text-right">
-                    <p class="text-3xl font-bold text-gray-800">{{ total_summaries }}</p>
-                    <p class="text-sm text-gray-500">Summaries</p>
-                </div>
-            </div>
-            <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-600">Pending:</span>
-                <span class="font-semibold {% if pending_summaries > 0 %}text-yellow-600{% else %}text-green-600{% endif %}">{{ pending_summaries }}</span>
-            </div>
-        </div>
-
-        <!-- Channels Card -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-4">
-                <div class="p-3 bg-green-100 rounded-lg">
-                    <i class="fab fa-telegram text-green-600 text-2xl"></i>
-                </div>
-                <div class="text-right">
-                    <p class="text-3xl font-bold text-gray-800">{{ active_channels }}</p>
-                    <p class="text-sm text-gray-500">Active Channels</p>
-                </div>
-            </div>
-            <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-600">Total:</span>
-                <span class="font-semibold text-gray-600">{{ total_channels }}</span>
-            </div>
-        </div>
-
-        <!-- Messages Card -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-4">
-                <div class="p-3 bg-yellow-100 rounded-lg">
-                    <i class="fas fa-paper-plane text-yellow-600 text-2xl"></i>
-                </div>
-                <div class="text-right">
-                    <p class="text-3xl font-bold text-gray-800">{{ total_delivered }}</p>
-                    <p class="text-sm text-gray-500">Messages Sent</p>
-                </div>
-            </div>
-            <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-600">Today:</span>
-                <span class="font-semibold text-green-600">+{{ messages_today }}</span>
-            </div>
-        </div>
+<!-- Stat cards -->
+<div class="overview-grid section-gap">
+  <!-- Articles -->
+  <div class="stat-card rise" style="animation-delay:.05s">
+    <div class="stat-icon">
+      <i class="fas fa-newspaper"></i>
     </div>
-
-    <!-- Revenue & Alerts Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <!-- Revenue Card -->
-        <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
-            <div class="flex items-center justify-between mb-4">
-                <i class="fas fa-dollar-sign text-4xl opacity-50"></i>
-                <div class="text-right">
-                    <p class="text-4xl font-bold">${{ revenue_today }}</p>
-                    <p class="text-sm opacity-80">Revenue Today</p>
-                </div>
-            </div>
-            <div class="mt-4 pt-4 border-t border-green-400">
-                <p class="text-sm">💰 Keep those channels happy!</p>
-            </div>
-        </div>
-
-        <!-- Low Balance Alert -->
-        <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-800">
-                    <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
-                    Low Balance Channels
-                </h3>
-                <a href="{% url 'dashboard:channel_list' %}" class="text-blue-600 hover:text-blue-700 text-sm">View
-                    All</a>
-            </div>
-
-            {% if low_balance_channels %}
-                <div class="space-y-3">
-                    {% for channel in low_balance_channels %}
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div class="flex items-center">
-                                <div class="w-10 h-10 bg-gradient-to-r from-red-400 to-red-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
-                                    {{ channel.name|slice:":1"|upper }}
-                                </div>
-                                <div>
-                                    <p class="font-semibold text-gray-800">{{ channel.name }}</p>
-                                    <p class="text-xs text-gray-500">{{ channel.topic.name }}</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-lg font-bold {% if channel.balance < 5 %}text-red-600{% else %}text-yellow-600{% endif %}">
-                                    ${{ channel.balance }}
-                                </p>
-                                <form method="post" action="{% url 'dashboard:channel_add_balance' channel.pk %}"
-                                      class="mt-1">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="amount" value="100">
-                                    <button type="submit" class="text-xs text-blue-600 hover:text-blue-700">
-                                        <i class="fas fa-plus-circle mr-1"></i>Add $100
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="text-center text-gray-500 py-8">
-                    <i class="fas fa-check-circle text-green-500 text-3xl mb-2"></i><br>
-                    All channels have sufficient balance!
-                </p>
-            {% endif %}
-        </div>
+    <div>
+      <div class="stat-value">{{ total_articles }}</div>
+      <div class="stat-label">Barcha Yangiliklar</div>
+      <div class="stat-sub" style="color:var(--success)">+{{ articles_today }} bugun</div>
     </div>
+  </div>
 
-    <!-- Recent Articles -->
-    <div class="bg-white rounded-lg shadow">
-        <div class="flex items-center justify-between p-6 border-b">
-            <h3 class="text-lg font-semibold text-gray-800">
-                <i class="fas fa-newspaper text-blue-600 mr-2"></i>
-                Recent Articles
-            </h3>
-            <a href="{% url 'dashboard:article_list' %}" class="text-blue-600 hover:text-blue-700 text-sm">View All</a>
-        </div>
-
-        <div class="p-6">
-            {% if recent_articles %}
-                <div class="space-y-4">
-                    {% for article in recent_articles %}
-                        <div class="flex items-start justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                            <div class="flex-1">
-                                <a href="{% url 'dashboard:article_detail' article.pk %}"
-                                   class="text-lg font-semibold text-gray-800 hover:text-blue-600">
-                                    {{ article.title|truncatewords:15 }}
-                                </a>
-                                <p class="text-sm text-gray-600 mt-1">{{ article.content|truncatewords:20 }}</p>
-                                <div class="flex items-center mt-2 text-xs text-gray-500">
-                        <span class="mr-4">
-                            <i class="fas fa-globe mr-1"></i>{{ article.source }}
-                        </span>
-                                    <span>
-                            <i class="fas fa-clock mr-1"></i>{{ article.published_date }}
-                        </span>
-                                </div>
-                            </div>
-                            <div class="ml-4">
-                                {% if article.has_summary %}
-                                    <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
-                        <i class="fas fa-check"></i> Summarized
-                    </span>
-                                {% else %}
-                                    <span class="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">
-                        <i class="fas fa-clock"></i> Pending
-                    </span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="text-center text-gray-500 py-8">No articles yet. Run the crawler!</p>
-            {% endif %}
-        </div>
+  <!-- Summaries -->
+  <div class="stat-card rise" style="animation-delay:.1s">
+    <div class="stat-icon accent">
+      <i class="fas fa-align-left"></i>
     </div>
+    <div>
+      <div class="stat-value">{{ total_summaries }}</div>
+      <div class="stat-label">Tayyorlangan Xabarlar</div>
+      <div class="stat-sub {% if pending_summaries > 0 %}" style="color:var(--warning){% else %}" style="color:var(--success){% endif %}">
+        {{ pending_summaries }} kutilmoqda
+      </div>
+    </div>
+  </div>
+
+  <!-- Channels -->
+  <div class="stat-card rise" style="animation-delay:.15s">
+    <div class="stat-icon success">
+      <i class="fab fa-telegram"></i>
+    </div>
+    <div>
+      <div class="stat-value">{{ active_channels }}</div>
+      <div class="stat-label">Faol Kanallar</div>
+      <div class="stat-sub">Jami: {{ total_channels }}</div>
+    </div>
+  </div>
+
+  <!-- Delivered -->
+  <div class="stat-card rise" style="animation-delay:.2s">
+    <div class="stat-icon warning">
+      <i class="fas fa-paper-plane"></i>
+    </div>
+    <div>
+      <div class="stat-value">{{ total_delivered }}</div>
+      <div class="stat-label">Yuborilgan Xabarlar</div>
+      <div class="stat-sub" style="color:var(--success)">+{{ messages_today }} bugun</div>
+    </div>
+  </div>
+</div>
+
+<!-- Revenue + Low Balance -->
+<div class="grid-2 section-gap" style="align-items:start">
+  <!-- Revenue -->
+  <div class="revenue-card rise" style="animation-delay:.25s">
+    <div>
+      <div style="font-size:12px;font-family:var(--font-mono);color:var(--success);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Bugungi Daromad</div>
+      <div style="font-family:var(--font-display);font-size:36px;font-weight:700;letter-spacing:-.03em;color:var(--text)">${{ revenue_today }}</div>
+      <div style="font-size:13px;color:var(--text-faint);margin-top:6px">💰 Kanallarni qiziqishini davom ettiring!</div>
+    </div>
+    <i class="fas fa-dollar-sign" style="font-size:48px;color:rgba(47,208,122,.15)"></i>
+  </div>
+
+  <!-- Low Balance Channels -->
+  <div class="card rise" style="animation-delay:.3s">
+    <div class="card-header">
+      <div class="card-header-title">
+        <i class="fas fa-exclamation-triangle" style="color:var(--warning)"></i> Kam Balansli Kanallar
+      </div>
+      <a href="{% url 'dashboard:channel_list' %}" class="btn btn-subtle btn-sm">Hammasini Ko'rish</a>
+    </div>
+    <div style="padding:16px">
+      {% if low_balance_channels %}
+        <div style="display:flex;flex-direction:column;gap:10px">
+          {% for channel in low_balance_channels %}
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--surface-2);border-radius:var(--r);border:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--danger-soft);display:grid;place-items:center;color:var(--danger);font-weight:700;font-size:13px;flex-shrink:0">
+                {{ channel.name|slice:":1"|upper }}
+              </div>
+              <div>
+                <div style="font-weight:600;font-size:14px">{{ channel.name }}</div>
+                <div style="font-size:12px;color:var(--text-faint)">{{ channel.topic.name }}</div>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:17px;font-weight:700;{% if channel.balance < 5 %}color:var(--danger){% else %}color:var(--warning){% endif %}">${{ channel.balance }}</div>
+              <form method="post" action="{% url 'dashboard:channel_add_balance' channel.pk %}" style="margin-top:4px">
+                {% csrf_token %}
+                <input type="hidden" name="amount" value="100">
+                <button type="submit" class="btn btn-subtle btn-sm">
+                  <i class="fas fa-plus-circle"></i> +$100
+                </button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding:28px 20px">
+          <i class="fas fa-check-circle" style="color:var(--success);opacity:1"></i>
+          <p>Barcha kanallar yetarli balansga ega!</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Recent Articles -->
+<div class="card rise" style="animation-delay:.35s">
+  <div class="card-header">
+    <div class="card-header-title">
+      <i class="fas fa-newspaper" style="color:var(--primary-700)"></i> So'nggi Yangiliklar
+    </div>
+    <a href="{% url 'dashboard:article_list' %}" class="btn btn-subtle btn-sm">Hammasini Ko'rish</a>
+  </div>
+  <div style="padding:6px 0">
+    {% if recent_articles %}
+      {% for article in recent_articles %}
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:14px 22px;border-bottom:1px solid var(--border);gap:16px;transition:background .12s" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='transparent'">
+        <div style="flex:1;min-width:0">
+          <a href="{% url 'dashboard:article_detail' article.pk %}" style="font-weight:600;font-size:14.5px;line-height:1.4;color:var(--text);transition:color .15s" onmouseover="this.style.color='var(--primary-700)'" onmouseout="this.style.color='var(--text)'">
+            {{ article.title|truncatewords:14 }}
+          </a>
+          <div style="font-size:13px;color:var(--text-muted);margin-top:4px">{{ article.content|truncatewords:18 }}</div>
+          <div style="display:flex;align-items:center;gap:14px;margin-top:6px">
+            <span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-faint)">
+              <i class="fas fa-globe"></i> {{ article.source }}
+            </span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-faint);font-family:var(--font-mono)">
+              <i class="fas fa-clock"></i> {{ article.published_date }}
+            </span>
+          </div>
+        </div>
+        <div style="flex-shrink:0">
+          {% if article.has_summary %}
+            <span class="pill pill-success"><span class="dot"></span> Yakunlangan</span>
+          {% else %}
+            <span class="pill pill-warning"><span class="dot"></span> Jarayonda</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <i class="fas fa-newspaper"></i>
+        <p>Hali yangiliklar yo'q. Crawlerni ishga tushiring!</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}
