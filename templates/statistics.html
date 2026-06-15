@@ -13,29 +13,22 @@
       <div style="font-size:14.5px;font-weight:700">Yig'ilgan Yangiliklar</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px">
-      {% for row in "today week month total"|split:" " %}
-      {% if forloop.counter == 1 %}
       <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
         <span class="muted text-sm">Bugun</span>
         <span style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--primary-700)">{{ stats.articles.today }}</span>
       </div>
-      {% elif forloop.counter == 2 %}
       <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
         <span class="muted text-sm">Bu hafta</span>
         <span style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--primary-700)">{{ stats.articles.week }}</span>
       </div>
-      {% elif forloop.counter == 3 %}
       <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
         <span class="muted text-sm">Bu oy</span>
         <span style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--primary-700)">{{ stats.articles.month }}</span>
       </div>
-      {% else %}
       <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0">
         <span class="muted text-sm">Jami</span>
         <span style="font-family:var(--font-display);font-size:22px;font-weight:700">{{ stats.articles.total }}</span>
       </div>
-      {% endif %}
-      {% endfor %}
     </div>
   </div>
 
